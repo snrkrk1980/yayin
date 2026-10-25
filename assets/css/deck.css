@@ -1,0 +1,48 @@
+/* Sunum motoru gorunumu */
+html, body { height: 100%; overflow: hidden; background: #000; }
+.deck { position: fixed; inset: 0; background: #000; user-select: none; -webkit-user-select: none; }
+.deck__layers { position: absolute; inset: 0; cursor: pointer; }
+.deck__layer {
+  position: absolute; inset: 0;
+  transition: opacity .6s var(--ease), transform .7s var(--ease), filter .6s var(--ease);
+}
+.deck__layer.is-entering { opacity: 0; transform: translateX(calc(var(--dir) * 3%)) scale(1.02); filter: blur(6px); }
+.deck__layer.is-leaving { opacity: 0; transform: scale(.98); filter: blur(4px); pointer-events: none; }
+
+.deck__ui { position: absolute; inset: 0; pointer-events: none; }
+.deck__progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.08); }
+.deck__progress i { display: block; height: 100%; width: 0; background: var(--gradient); transition: width .7s var(--ease); }
+.deck__btn {
+  position: absolute; pointer-events: auto; cursor: pointer;
+  width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18);
+  background: rgba(20,20,24,.55); color: #fff; font-size: 18px; line-height: 1;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  opacity: 0; transition: opacity .4s, background .3s;
+}
+.deck__btn:hover { background: rgba(0,228,135,.9); color: #000; }
+.deck.is-awake .deck__btn { opacity: 1; }
+.deck__prev { left: 18px; top: 50%; transform: translateY(-50%); }
+.deck__next { right: 18px; top: 50%; transform: translateY(-50%); }
+.deck__fs { right: 18px; bottom: calc(env(safe-area-inset-bottom, 0px) + 18px); font-size: 16px; }
+
+.deck__rotate { display: none; }
+@media (orientation: portrait) and (max-width: 700px) {
+  .deck__rotate {
+    display: block; position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); transform: translateX(-50%);
+    font: 500 12px/1 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.55); white-space: nowrap;
+  }
+  .deck__btn { opacity: 1; width: 40px; height: 40px; top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); transform: none; }
+  .deck__fs { bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); right: 50%; transform: translateX(50%); }
+}
+.deck__box { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; transform: translate(-50%, -50%) scale(var(--scale, 1)); transform-origin: center; }
+
+/* Her stilin kendi slayt gecisi */
+.deck--blueprint .deck__layer { transition: clip-path .75s cubic-bezier(.7,0,.2,1), opacity .5s; clip-path: inset(0 0 0 0); }
+.deck--blueprint .deck__layer.is-entering { opacity: 1; filter: none; transform: none; clip-path: inset(0 0 0 100%); }
+.deck--blueprint .deck__layer.is-leaving { opacity: 1; filter: none; transform: none; transition-delay: .3s; }
+.deck--spotlight .deck__layer { transition: opacity .8s ease, filter .8s ease; }
+.deck--spotlight .deck__layer.is-entering { opacity: 0; transform: none; filter: brightness(0); }
+.deck--spotlight .deck__layer.is-leaving { opacity: 0; transform: none; filter: brightness(0); }
+.deck--wave .deck__layer { transition: opacity .7s var(--ease), transform .9s cubic-bezier(.2,1.2,.3,1); }
+.deck--wave .deck__layer.is-entering { opacity: 0; filter: none; transform: translateY(calc(var(--dir) * 6%)) scale(.96); }
+.deck--wave .deck__layer.is-leaving { opacity: 0; filter: none; transform: translateY(calc(var(--dir) * -4%)) scale(1.03); }
