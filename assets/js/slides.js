@@ -4,13 +4,14 @@
 //   blueprint - Signify mavisi, cizilen izgara, donen kareler; kelimeler soldan saga silinerek acilir
 //   spotlight - siyah sahne, gezinen spot isigi, toz zerreleri; harfler tek tek parlayarak gelir
 //   wave      - akan dalgalar, yayilan halkalar; kelimeler yaylanarak buyur
+//   corridor  - gece sehir isiklari, uzun pozlama isik izleri; kelimeler lamba gibi titreyip yanar
 // Slayt metinleri bu dosyada DEGIL, her sunumun kendi index.html dosyasinda durur.
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring, Easing } from "remotion";
 import htm from "htm";
 import { LOGO_SVG } from "./logo.js";
 
-const html = htm.bind(React.createElement);
+export const html = htm.bind(React.createElement);
 
 export const FPS = 30;
 export const WIDTH = 1920;
@@ -18,14 +19,15 @@ export const HEIGHT = 1080;
 export const DURATION = FPS * 120; // giris animasyonu ilk saniyelerde, ortam animasyonu 2 dk surer
 
 // Renkler Signify kurumsal sablonundan
-const C = {
+export const C = {
   green: "#00E487", greenLight: "#66EFB7", teal: "#1ECBD0", blue: "#1432FF", blueLight: "#A1ADFF",
   dark: "#3C3C41", grey: "#969696", greyLight: "#D5D5D5", ink: "#0B0B0E", white: "#FFFFFF",
+  night: "#04060C", amber: "#FFB547",
 };
-const HEAD = '"Space Grotesk", "Segoe UI", system-ui, sans-serif';
-const BODY = '"Inter", "Segoe UI", system-ui, sans-serif';
-const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
-const lg = (a, b) => `linear-gradient(120deg, ${a} 0%, ${b} 100%)`;
+export const HEAD = '"Space Grotesk", "Segoe UI", system-ui, sans-serif';
+export const BODY = '"Inter", "Segoe UI", system-ui, sans-serif';
+export const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" };
+export const lg = (a, b) => `linear-gradient(120deg, ${a} 0%, ${b} 100%)`;
 
 export const THEMES = {
   aurora: {
@@ -52,10 +54,16 @@ export const THEMES = {
     kickerDark: C.teal, kickerLight: C.teal, accentLight: C.teal, glow: "30,203,208",
     bar: "linear-gradient(180deg, rgba(161,173,255,.95), rgba(30,203,208,.7))", text: "pop",
   },
+  corridor: {
+    id: "corridor", darkBg: C.night, lightBg: "#EEF1F6",
+    gradDark: lg(C.green, C.teal), gradLight: lg("#00B36A", C.blue),
+    kickerDark: C.green, kickerLight: "#00995A", accentLight: "#00995A", glow: "0,228,135",
+    bar: "linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", text: "ignite",
+  },
 };
-const ThemeCtx = React.createContext(THEMES.aurora);
-const DarkCtx = React.createContext(true);
-function useLook() {
+export const ThemeCtx = React.createContext(THEMES.aurora);
+export const DarkCtx = React.createContext(true);
+export function useLook() {
   const T = React.useContext(ThemeCtx);
   const dark = React.useContext(DarkCtx);
   return { T, dark, grad: dark ? T.gradDark : T.gradLight };
@@ -63,20 +71,20 @@ function useLook() {
 export function themeOf(name) { return THEMES[name] || THEMES.aurora; }
 
 // ---------- yardimcilar ----------
-function useSpring(delay = 0, config = { damping: 200, mass: 0.9 }) {
+export function useSpring(delay = 0, config = { damping: 200, mass: 0.9 }) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   return spring({ frame: frame - delay, fps, config });
 }
-const gradText = (g) => ({ backgroundImage: g, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" });
+export const gradText = (g) => ({ backgroundImage: g, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" });
 
-function Logo({ width = 170, color = C.white, style }) {
+export function Logo({ width = 170, color = C.white, style }) {
   return html`<div style=${{ width, color, lineHeight: 0, ...style }}
     dangerouslySetInnerHTML=${{ __html: LOGO_SVG.replace("<svg ", '<svg style="width:100%;height:auto;display:block" ') }} />`;
 }
 
 // Baslik animasyonu: stile gore farkli hareket
-function RiseText({ text = "", delay = 0, stagger = 3, style, gradientWords = 0 }) {
+export function RiseText({ text = "", delay = 0, stagger = 3, style, gradientWords = 0 }) {
   const { T } = useLook();
   const words = String(text).split(/\s+/).filter(Boolean);
   let charIndex = 0;
@@ -85,7 +93,7 @@ function RiseText({ text = "", delay = 0, stagger = 3, style, gradientWords = 0 
       const grad = gradientWords > 0 && i >= words.length - gradientWords;
       const start = charIndex; charIndex += w.length;
       if (T.text === "letters") return html`<${Letters} key=${i} word=${w} delay=${delay + start * 0.9} grad=${grad} />`;
-      const Comp = T.text === "wipe" ? WipeWord : T.text === "pop" ? PopWord : Word;
+      const Comp = T.text === "wipe" ? WipeWord : T.text === "pop" ? PopWord : T.text === "ignite" ? IgniteWord : Word;
       return html`<${Comp} key=${i} word=${w} delay=${delay + i * stagger} grad=${grad} />`;
     })}
   </div>`;
@@ -129,16 +137,33 @@ function PopWord({ word, delay, grad }) {
       transformOrigin: "50% 100%", ...(grad ? gradText(g) : {}) }}>${word}</span>`;
 }
 
-function Fade({ delay = 0, y = 30, children, style }) {
+// corridor: kelime eski bir lamba gibi birkac kez titreyip yanar, sonra hafif isik sacar
+function IgniteWord({ word, delay, grad }) {
+  const { grad: g, T, dark } = useLook();
+  const frame = useCurrentFrame();
+  const f = frame - delay;
+  const flick = f < 0 ? 0 : f < 3 ? 0.7 : f < 5 ? 0.1 : f < 7 ? 0.85 : f < 8 ? 0.3 : interpolate(f, [8, 16], [0.6, 1], clamp);
+  const lift = interpolate(f, [0, 16], [14, 0], { ...clamp, easing: Easing.out(Easing.cubic) });
+  const halo = dark ? interpolate(f, [6, 14, 40], [0, 0.9, 0.18], clamp) : 0;
+  return html`<span style=${{ display: "inline-block", paddingBottom: "0.08em", marginBottom: "-0.08em", opacity: flick,
+      transform: `translateY(${lift}px)`, filter: dark ? `drop-shadow(0 0 ${18 * halo}px rgba(${T.glow},${halo}))` : "none",
+      ...(grad ? gradText(g) : {}) }}>${word}</span>`;
+}
+
+export function Fade({ delay = 0, y = 30, children, style }) {
   const p = useSpring(delay);
   return html`<div style=${{ opacity: p, transform: `translateY(${interpolate(p, [0, 1], [y, 0])}px)`, ...style }}>${children}</div>`;
 }
 
-function Kicker({ text, delay = 0, color }) {
+export function Kicker({ text, delay = 0, color }) {
   const { T, dark, grad } = useLook();
   const p = useSpring(delay);
   if (!text) return null;
-  const marker = T.id === "blueprint"
+  const marker = T.id === "corridor"
+    ? html`<div style=${{ position: "relative", width: interpolate(p, [0, 1], [0, 70]), height: 3, background: `linear-gradient(90deg, transparent, ${dark ? C.green : T.accentLight})` }}>
+        <div style=${{ position: "absolute", right: -5, top: -4, width: 11, height: 11, borderRadius: "50%", background: dark ? C.green : T.accentLight, boxShadow: `0 0 16px ${C.green}` }} />
+      </div>`
+    : T.id === "blueprint"
     ? html`<div style=${{ width: 18, height: 18, border: `3px solid ${dark ? C.greenLight : C.blue}`, transform: `rotate(${p * 225}deg) scale(${p})` }} />`
     : T.id === "wave"
       ? html`<svg width=${interpolate(p, [0, 1], [0, 80])} height="20" viewBox="0 0 80 20" preserveAspectRatio="none"><path d="M0 10 Q10 0 20 10 T40 10 T60 10 T80 10" fill="none" stroke=${dark ? C.teal : C.teal} strokeWidth="3" /></svg>`
@@ -280,8 +305,51 @@ function Waves({ dark }) {
   <//>`;
 }
 
-function Background({ dark }) {
+// corridor: gece gokyuzu, uzun pozlama isik izleri (otoyol gibi) ve titreyen sehir isiklari
+function CityNight({ dark }) {
+  const frame = useCurrentFrame();
+  const t = frame / FPS;
+  const on = interpolate(frame, [0, 30], [0, 1], clamp);
+  const trails = [
+    { y: 820, c: 120, w: 3, sp: 1.0, col: C.amber, o: 0.75 },
+    { y: 860, c: 90, w: 2, sp: -0.8, col: "#ffffff", o: 0.55 },
+    { y: 900, c: 160, w: 4, sp: 1.3, col: C.amber, o: 0.6 },
+    { y: 945, c: 60, w: 2, sp: -1.1, col: C.teal, o: 0.5 },
+    { y: 990, c: 200, w: 5, sp: 0.9, col: C.green, o: 0.45 },
+    { y: 1040, c: 140, w: 3, sp: -0.7, col: "#ffffff", o: 0.35 },
+  ];
+  const sky = dark
+    ? "radial-gradient(ellipse 70% 55% at 85% 0%, rgba(30,203,208,.16), transparent 70%), radial-gradient(ellipse 60% 50% at 0% 100%, rgba(20,50,255,.22), transparent 70%), linear-gradient(180deg, #04060C 0%, #070B16 70%, #0A1020 100%)"
+    : "radial-gradient(ellipse 70% 55% at 90% 0%, rgba(0,228,135,.14), transparent 70%), linear-gradient(180deg, #F4F6FA, #E8ECF3)";
+  return html`<${AbsoluteFill} style=${{ overflow: "hidden", background: sky }}>
+    <svg width=${WIDTH} height=${HEIGHT} style=${{ position: "absolute", inset: 0, opacity: on * (dark ? 1 : 0.5) }}>
+      <defs>
+        <filter id="trailglow" x="-10%" y="-200%" width="120%" height="500%"><feGaussianBlur stdDeviation="3" /></filter>
+      </defs>
+      ${trails.map((L, i) => {
+        const d = `M-100 ${L.y} C ${WIDTH * 0.3} ${L.y - L.c}, ${WIDTH * 0.7} ${L.y + L.c * 0.4}, ${WIDTH + 100} ${L.y - L.c * 0.6}`;
+        const off = -(t * 420 * L.sp) % 2400;
+        return html`<g key=${i} opacity=${L.o}>
+          <path d=${d} fill="none" stroke=${L.col} strokeWidth=${L.w * 3} strokeDasharray="380 820" strokeDashoffset=${off} filter="url(#trailglow)" opacity="0.5" />
+          <path d=${d} fill="none" stroke=${L.col} strokeWidth=${L.w} strokeDasharray="380 820" strokeDashoffset=${off} strokeLinecap="round" />
+        </g>`;
+      })}
+    </svg>
+    ${dark && Array.from({ length: 70 }).map((_, i) => {
+      const x = (i * 263) % WIDTH;
+      const y = (i * 151) % 640;
+      const tw = 0.25 + 0.75 * Math.abs(Math.sin(t * (0.6 + (i % 7) * 0.15) + i));
+      const sz = 1 + (i % 3);
+      return html`<div key=${i} style=${{ position: "absolute", left: x, top: y, width: sz, height: sz, borderRadius: "50%",
+        background: i % 9 === 0 ? C.amber : "#ffffff", opacity: on * tw * 0.55 }} />`;
+    })}
+    <div style=${{ position: "absolute", inset: 0, background: dark ? "radial-gradient(ellipse at 50% 40%, transparent 50%, rgba(0,0,0,.55) 100%)" : "none" }} />
+  <//>`;
+}
+
+export function Background({ dark }) {
   const { T } = useLook();
+  if (T.id === "corridor") return html`<${CityNight} dark=${dark} />`;
   if (T.id === "blueprint") return html`<${Blueprint} dark=${dark} />`;
   if (T.id === "spotlight") return html`<${Spotlight} dark=${dark} />`;
   if (T.id === "wave") return html`<${Waves} dark=${dark} />`;
@@ -351,15 +419,48 @@ function Ripples({ size = 760, delay = 0, x = "72%", y = "50%" }) {
     <div style=${{ position: "absolute", inset: "42%", borderRadius: "50%", background: lg(C.teal, C.blue), boxShadow: `0 0 80px ${C.teal}` }} />
   </div>`;
 }
-function Motif(props) {
+// corridor: uc dugumlu (Turkiye - Azerbaycan - Orta Asya) donen isik yolu
+export function Beacon({ size = 760, delay = 0, x = "72%", y = "50%" }) {
+  const frame = useCurrentFrame();
+  const p = useSpring(delay, { damping: 200, mass: 2.4 });
+  const R = size / 2 - 30;
+  const rot = frame * 0.18;
+  const nodes = [0, 120, 240];
+  const len = 2 * Math.PI * R;
+  return html`<svg width=${size} height=${size} style=${{ position: "absolute", left: x, top: y, transform: "translate(-50%,-50%)", overflow: "visible" }}>
+    <defs>
+      <linearGradient id="beam" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor=${C.amber} /><stop offset=".5" stopColor=${C.green} /><stop offset="1" stopColor=${C.teal} /></linearGradient>
+      <filter id="bglow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14" /></filter>
+    </defs>
+    <g transform=${`rotate(${rot - 90} ${size / 2} ${size / 2})`}>
+      <circle cx=${size / 2} cy=${size / 2} r=${R} fill="none" stroke="url(#beam)" strokeWidth="22" strokeDasharray=${len} strokeDashoffset=${len * (1 - p)} filter="url(#bglow)" opacity=".55" />
+      <circle cx=${size / 2} cy=${size / 2} r=${R} fill="none" stroke="url(#beam)" strokeWidth="5" strokeDasharray=${len} strokeDashoffset=${len * (1 - p)} strokeLinecap="round" />
+      <circle cx=${size / 2} cy=${size / 2} r=${R * 0.62} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="1.5" strokeDasharray="2 12" opacity=${p} />
+      ${nodes.map((a, i) => {
+        const q = interpolate(frame - delay - 20 - i * 8, [0, 12], [0, 1], clamp);
+        const rad = (a * Math.PI) / 180;
+        const cx = size / 2 + Math.cos(rad) * R, cy = size / 2 + Math.sin(rad) * R;
+        const pulse = 1 + 0.25 * Math.sin(frame / 10 + i * 2);
+        return html`<g key=${i} opacity=${q}>
+          <circle cx=${cx} cy=${cy} r=${34 * pulse} fill=${C.green} opacity=".18" />
+          <circle cx=${cx} cy=${cy} r="12" fill="#fff" />
+        </g>`;
+      })}
+    </g>
+    <circle cx=${size / 2} cy=${size / 2} r=${70 * p} fill="url(#beam)" opacity=".9" />
+    <circle cx=${size / 2} cy=${size / 2} r=${150 * p} fill=${C.green} opacity=".08" />
+  </svg>`;
+}
+export function Motif(props) {
   const { T } = useLook();
+  if (T.id === "corridor") return html`<${Beacon} ...${props} />`;
   if (T.id === "blueprint") return html`<${Squares} ...${props} />`;
   if (T.id === "spotlight") return html`<${Sun} ...${props} />`;
   if (T.id === "wave") return html`<${Ripples} ...${props} />`;
   return html`<${Ring} ...${props} />`;
 }
 
-function Frame({ dark = true, children, ambient = true }) {
+export function Frame({ dark = true, children, ambient = true }) {
   const { T } = useLook();
   return html`<${DarkCtx.Provider} value=${dark}>
     <${AbsoluteFill} style=${{ background: dark ? T.darkBg : T.lightBg, color: dark ? C.white : C.ink, fontFamily: BODY }}>
@@ -369,7 +470,7 @@ function Frame({ dark = true, children, ambient = true }) {
   <//>`;
 }
 
-function Footer({ index, total, title }) {
+export function Footer({ index, total, title }) {
   const { dark } = useLook();
   const p = useSpring(18);
   return html`<div style=${{ position: "absolute", left: 120, right: 120, bottom: 64, display: "flex", alignItems: "center",
@@ -382,7 +483,7 @@ function Footer({ index, total, title }) {
   </div>`;
 }
 
-const pad = { position: "absolute", left: 120, right: 120, top: 120, bottom: 170 };
+export const pad = { position: "absolute", left: 120, right: 120, top: 120, bottom: 170 };
 
 // ---------- slayt tipleri ----------
 function Cover({ s, meta }) {
@@ -640,6 +741,8 @@ function Closing({ s, meta }) {
 }
 
 export const SLIDE_TYPES = { cover: Cover, agenda: Agenda, statement: Statement, feature: Feature, numbers: Numbers, roadmap: Roadmap, closing: Closing };
+// Ek slayt tipleri baska dosyalardan buraya eklenir (or. corridor.js)
+export function registerSlideTypes(types) { Object.assign(SLIDE_TYPES, types); }
 
 // Slayt tipini secip dogru bileseni, sunumun stiliyle cizen kapsayici
 export function SlideComposition({ slide, meta, index, total, style }) {

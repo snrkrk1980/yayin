@@ -4,11 +4,12 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { Player } from "@remotion/player";
 import { SlideComposition, FPS, WIDTH, HEIGHT, DURATION } from "./slides.js";
+import "./corridor.js"; // "c-..." slayt tiplerini ekler
 
 const data = JSON.parse(document.getElementById("deck-data").textContent);
 const slides = data.slides || [];
 const meta = { title: data.title, presenter: data.presenter, role: data.role };
-const style = data.style || "aurora"; // her sunumun kendi gorunumu: aurora, blueprint, spotlight, wave
+const style = data.style || "aurora"; // her sunumun kendi gorunumu: aurora, blueprint, spotlight, wave, corridor
 const total = slides.length;
 // ?still=90 : animasyonu oynatmadan belirli bir karede durdurur (kontrol ve ekran goruntusu icin)
 const still = parseInt(new URLSearchParams(location.search).get("still"), 10);

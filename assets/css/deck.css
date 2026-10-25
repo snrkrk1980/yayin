@@ -46,3 +46,7 @@ html, body { height: 100%; overflow: hidden; background: #000; }
 .deck--wave .deck__layer { transition: opacity .7s var(--ease), transform .9s cubic-bezier(.2,1.2,.3,1); }
 .deck--wave .deck__layer.is-entering { opacity: 0; filter: none; transform: translateY(calc(var(--dir) * 6%)) scale(.96); }
 .deck--wave .deck__layer.is-leaving { opacity: 0; filter: none; transform: translateY(calc(var(--dir) * -4%)) scale(1.03); }
+/* corridor: isik hizinda ileri ucus - eski slayt buyuyup parlayarak kaybolur, yeni slayt derinden gelir */
+.deck--corridor .deck__layer { transition: opacity .7s var(--ease), transform .9s cubic-bezier(.6,0,.2,1), filter .7s var(--ease); }
+.deck--corridor .deck__layer.is-entering { opacity: 0; transform: scale(calc(1 - var(--dir) * .12)); filter: blur(10px) brightness(1.8); }
+.deck--corridor .deck__layer.is-leaving { opacity: 0; transform: scale(calc(1 + var(--dir) * .18)); filter: blur(14px) brightness(2.2); pointer-events: none; }
