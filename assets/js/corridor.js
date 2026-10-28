@@ -595,7 +595,7 @@ function CFunnel({ s, meta, index, total }) {
 }
 
 // ---------- 10. hedef / gerceklesme gostergeleri ----------
-function Dial({ q, delay }) {
+function Dial({ q, delay, vsWord }) {
   const p = useT(delay, 50);
   const ratio = q.actual / q.target;
   const shown = Math.min(ratio, 2) * p;
@@ -612,7 +612,7 @@ function Dial({ q, delay }) {
     </svg>
     <div style=${{ marginTop: -36, font: `600 30px/1 ${HEAD}`, color: col }}>${q.variance}</div>
     <div style=${{ marginTop: 16, font: `600 26px/1 ${HEAD}` }}>${q.label}</div>
-    <div style=${{ marginTop: 8, font: `400 17px/1.3 ${BODY}`, color: muted, whiteSpace: "nowrap" }}>€${fmt(q.actual, 2)}m vs €${fmt(q.target, 2)}m</div>
+    <div style=${{ marginTop: 8, font: `400 17px/1.3 ${BODY}`, color: muted, whiteSpace: "nowrap" }}>€${fmt(q.actual, 2)}m vs €${fmt(q.target, 2)}m${vsWord ? ` ${vsWord}` : ""}</div>
   <//>`;
 }
 function CGauges({ s, meta, index, total }) {
@@ -640,7 +640,7 @@ function CGauges({ s, meta, index, total }) {
       <div style=${{ marginTop: 16 }}><${Badge} text=${m.badge} delay=${80} /></div>
     </div>
     <div style=${{ position: "absolute", left: 740, right: 120, top: 290, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 22 }}>
-      ${(s.quarters || []).map((q, i) => html`<${Dial} key=${i} q=${q} delay=${30 + i * 10} />`)}
+      ${(s.quarters || []).map((q, i) => html`<${Dial} key=${i} q=${q} delay=${30 + i * 10} vsWord=${s.quartersVs} />`)}
     </div>
     <div style=${{ position: "absolute", left: 740, right: 120, top: 640, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22 }}>
       ${(s.lists || []).map((L, i) => html`<${Pop} key=${i} delay=${80 + i * 10} style=${{ ...glass, padding: "22px 28px" }}>
