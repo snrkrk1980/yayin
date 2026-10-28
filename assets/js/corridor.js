@@ -984,7 +984,7 @@ function CStairs({ s, meta, index, total }) {
       <${Label} style=${{ gridColumn: "1 / -1" }}>${s.factsLabel}<//>
       ${(s.facts || []).map((f, i) => html`<${Pop} key=${i} delay=${50 + i * 8} style=${{ ...glass, padding: "22px 26px" }}>
         <${Num} n=${f} delay=${54 + i * 8} dur=${60} style=${{ font: `600 52px/1 ${HEAD}`, ...gradText(`linear-gradient(120deg, ${C.green}, ${C.teal})`) }} />
-        <div style=${{ marginTop: 8, font: `400 ${tight ? 17 : 19}px/1.35 ${BODY}`, color: muted }}>${f.label}</div>
+        <div style=${{ marginTop: 10, font: `400 19px/1.35 ${BODY}`, color: muted }}>${f.label}</div>
       <//>`)}
     </div>
     <div style=${{ position: "absolute", left: 120, right: 120, bottom: 190 }}><${Label}>${s.tickerLabel}<//></div>
