@@ -291,9 +291,16 @@ function CSection({ s, meta, index, total }) {
     <div style=${{ position: "absolute", right: 60, top: 40, font: `700 640px/0.9 ${HEAD}`, letterSpacing: "-0.06em",
       ...gradText(`linear-gradient(100deg, transparent ${sweep - 18}%, rgba(0,228,135,.9) ${sweep}%, transparent ${sweep + 18}%)`) }}>${s.number}</div>
     <div style=${{ ...pad, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-      <${Kicker} text=${s.kicker} delay=${6} />
-      <${RiseText} text=${s.title} delay=${10} stagger=${4} gradientWords=${s.gradientWords ?? 1}
-        style=${{ marginTop: 30, font: `600 120px/0.98 ${HEAD}`, letterSpacing: "-0.05em", maxWidth: 1300 }} />
+      ${s.chapter ? html`
+        <${Kicker} text=${s.chapterLabel || `Section ${s.number}`} delay=${4} />
+        <${RiseText} text=${s.chapter} delay=${8} stagger=${4} gradientWords=${s.chapter.split(" ").length}
+          style=${{ marginTop: 22, font: `700 150px/0.95 ${HEAD}`, letterSpacing: "-0.05em", maxWidth: 1400 }} />
+        <div style=${{ marginTop: 26, width: 120 * useT(14, 30), height: 4, borderRadius: 2, background: C.green, boxShadow: `0 0 18px ${C.green}` }} />
+        <${RiseText} text=${s.title} delay=${16} stagger=${3} gradientWords=${0}
+          style=${{ marginTop: 26, font: `600 64px/1.05 ${HEAD}`, letterSpacing: "-0.03em", maxWidth: 1300 }} />` : html`
+        <${Kicker} text=${s.kicker} delay=${6} />
+        <${RiseText} text=${s.title} delay=${10} stagger=${4} gradientWords=${s.gradientWords ?? 1}
+          style=${{ marginTop: 30, font: `600 120px/0.98 ${HEAD}`, letterSpacing: "-0.05em", maxWidth: 1300 }} />`}
       <${Fade} delay=${26} style=${{ marginTop: 28, font: `400 34px/1.4 ${BODY}`, color: "rgba(255,255,255,.78)", maxWidth: 1100 }}>${s.subtitle}<//>
       <div style=${{ marginTop: 60, display: "flex", gap: 80 }}>
         ${stats.map((st, i) => html`<${Pop} key=${i} delay=${36 + i * 8}>
@@ -1200,9 +1207,65 @@ function CGap({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 21. bolge ekonomisi: Turkiye makas + diger ulkeler ----------
+function CRegion({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const tr = s.main || {};
+  const bars = tr.bars || [];
+  const bmax = Math.max(...bars.map((b) => b.value), 1);
+  const BW = 520;
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}>
+      <${Head} s=${s} size=${58} max=${1600} />
+    </div>
+    <${Pop} delay=${12} style=${{ ...glass, position: "absolute", left: 120, top: 250, width: 900, bottom: 150, padding: "28px 36px", borderColor: `${RED}66` }}>
+      <${Label} style=${{ color: RED }}>${tr.tag}<//>
+      <div style=${{ marginTop: 8, font: `600 34px/1.2 ${HEAD}` }}>${tr.headline}</div>
+      <div style=${{ marginTop: 26, display: "flex", flexDirection: "column", gap: 16 }}>
+        ${bars.map((b, i) => {
+          const p = spring({ frame: frame - 30 - i * 14, fps: FPS, config: { damping: 16, stiffness: 70 } });
+          const col = i === 0 ? RED : C.teal;
+          return html`<div key=${i} style=${{ display: "flex", alignItems: "center", gap: 18 }}>
+            <span style=${{ width: 220, font: `500 19px/1.25 ${BODY}`, color: muted }}>${b.label}</span>
+            <div style=${{ position: "relative", width: BW, height: 44 }}>
+              <div style=${{ position: "absolute", left: 0, top: 0, bottom: 0, width: (b.value / bmax) * BW * Math.min(1, p), borderRadius: 10,
+                background: `linear-gradient(90deg, ${col}33, ${col})`, boxShadow: `0 0 24px ${col}55` }} />
+              <span style=${{ position: "absolute", left: (b.value / bmax) * BW * Math.min(1, p) + 12, top: "50%", transform: "translateY(-50%)", font: `600 32px/1 ${HEAD}`, color: col }}>+${fmt(b.value * Math.min(1, p), 1)}%</span>
+            </div>
+          </div>`;
+        })}
+        ${tr.gap && html`<${Fade} delay=${70} style=${{ marginLeft: 238, font: `600 22px/1.3 ${HEAD}`, color: C.amber }}>${tr.gap}<//>`}
+      </div>
+      <div style=${{ marginTop: 26, display: "grid", gridTemplateColumns: `repeat(${(tr.kpis || []).length}, 1fr)`, gap: 18 }}>
+        ${(tr.kpis || []).map((k, i) => html`<${Pop} key=${i} delay=${60 + i * 8}>
+          <${Num} n=${k} delay=${64 + i * 8} style=${{ font: `600 44px/1 ${HEAD}`, letterSpacing: "-0.03em", color: "#fff" }} />
+          <div style=${{ marginTop: 6, font: `400 17px/1.3 ${BODY}`, color: muted }}>${k.label}</div>
+        <//>`)}
+      </div>
+      <div style=${{ marginTop: 22, display: "flex", flexDirection: "column", gap: 8 }}>
+        ${(tr.points || []).map((pt, i) => html`<div key=${i} style=${{ display: "flex", gap: 12, font: `400 20px/1.35 ${BODY}`, opacity: useT(80 + i * 6, 14) }}>
+          <span style=${{ color: RED }}>›</span><span>${pt}</span></div>`)}
+      </div>
+    <//>
+    <div style=${{ position: "absolute", left: 1050, right: 120, top: 250, bottom: 150, display: "flex", flexDirection: "column", gap: 16 }}>
+      ${(s.others || []).map((o, i) => html`<${Pop} key=${i} delay=${30 + i * 10} style=${{ ...glass, flex: 1, padding: "18px 26px" }}>
+        <div style=${{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <${Label} style=${{ color: o.color || C.amber }}>${o.tag}<//>
+          <span style=${{ font: `600 30px/1 ${HEAD}`, color: o.color || C.amber }}>${o.value}</span>
+        </div>
+        ${o.valueLabel && html`<div style=${{ textAlign: "right", marginTop: 2, font: `400 15px/1.2 ${BODY}`, color: muted }}>${o.valueLabel}</div>`}
+        ${(o.points || []).map((pt, k) => html`<div key=${k} style=${{ marginTop: 6, display: "flex", gap: 10, font: `400 18px/1.32 ${BODY}` }}>
+          <span style=${{ color: o.color || C.amber }}>›</span><span>${pt}</span></div>`)}
+      <//>`)}
+    </div>
+    ${s.source && html`<div style=${{ position: "absolute", left: 120, right: 120, bottom: 112, font: `400 14px/1.3 ${BODY}`, color: "rgba(255,255,255,.4)" }}>${s.source}</div>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 registerSlideTypes({
   "c-cover": CCover, "c-map": CMap, "c-skyline": CSkyline, "c-section": CSection, "c-flow": CFlow,
   "c-tr-map": CTrMap, "c-race": CRace, "c-strip": CStrip, "c-funnel": CFunnel, "c-gauges": CGauges,
   "c-orbit": COrbit, "c-plays": CPlays, "c-road": CRoad, "c-country": CCountry, "c-stairs": CStairs,
-  "c-bubbles": CBubbles, "c-heat": CHeat, "c-priorities": CPriorities, "c-cards": CCards, "c-gap": CGap,
+  "c-bubbles": CBubbles, "c-heat": CHeat, "c-priorities": CPriorities, "c-cards": CCards, "c-gap": CGap, "c-region": CRegion,
 });
