@@ -497,51 +497,69 @@ function CStrip({ s, meta, index, total }) {
   const frame = useCurrentFrame();
   const rows = s.rows || [];
   const all = rows.flatMap((r) => r.values);
-  const sorted = [...all].sort((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)] || 0;
-  const over = all.filter((v) => v > (s.threshold || 50)).length;
-  const X0 = 260, W = 1080, MAX = s.max || 450;
-  const sx = (v) => X0 + (Math.min(v, MAX) / MAX) * W;
-  const rowH = 74, top = 280;
+  // ok = kabul edilebilir fiyat farki (orn. %10), severe = cok pahali esigi (orn. %50)
+  const ok = s.threshold ?? 10, severe = s.severe ?? 50;
+  const over = all.filter((v) => v > ok).length;
+  const far = all.filter((v) => v > severe).length;
+  // karekok olcek: %10 bandi okunur kalir, %437 gibi uc degerler de sigar
+  const X0 = 330, W = 980, MAX = s.max || 450;
+  const sx = (v) => X0 + Math.sqrt(Math.min(v, MAX) / MAX) * W;
+  const rowH = 78, top = 350, bottom = top + rowH * rows.length;
   const axis = useT(10, 40);
+  const zones = [
+    { from: 0, to: ok, color: C.green, label: s.okLabel || "Acceptable" },
+    { from: ok, to: severe, color: C.amber, label: `Too expensive` },
+    { from: severe, to: MAX, color: RED, label: `Far too expensive >${severe}%` },
+  ];
+  const colOf = (v) => (v <= ok ? C.green : v <= severe ? C.amber : RED);
   let k = 0;
   return html`<${Frame} dark=${true}>
     <div style=${pad}>
-      <${Head} s=${s} size=${62} max=${1500} />
+      <${Head} s=${s} size=${58} max=${1500} />
+      ${s.sub && html`<${Fade} delay=${10} style=${{ marginTop: 14, font: `400 22px/1.4 ${BODY}`, color: muted }}>${s.sub}<//>`}
     </div>
     <svg width=${WIDTH} height=${HEIGHT} style=${{ position: "absolute", left: 120, top: 0 }}>
-      ${[0, 50, 100, 200, 300, 400].map((g) => html`<g key=${g} opacity=${axis}>
-        <line x1=${sx(g)} y1=${top - 20} x2=${sx(g)} y2=${top + rowH * rows.length} stroke="rgba(255,255,255,.1)" strokeDasharray=${g === 0 ? "0" : "3 6"} />
-        <text x=${sx(g)} y=${top + rowH * rows.length + 34} textAnchor="middle" fill=${muted} style=${{ font: `400 18px ${BODY}` }}>${g}%</text>
+      ${zones.map((z, i) => html`<g key=${"z" + i} opacity=${axis}>
+        <rect x=${sx(z.from)} y=${top - 34} width=${sx(z.to) - sx(z.from)} height=${bottom - top + 34} fill=${z.color} opacity=".07" />
+        <text x=${(sx(z.from) + sx(z.to)) / 2} y=${top - 12} textAnchor="middle" fill=${z.color} style=${{ font: `600 17px ${HEAD}`, letterSpacing: ".04em" }}>${z.label.toUpperCase()}</text>
       </g>`)}
-      <g opacity=${useT(90, 20)}>
-        <line x1=${sx(median)} y1=${top - 40} x2=${sx(median)} y2=${top + rowH * rows.length} stroke=${C.amber} strokeWidth="2" />
-        <text x=${sx(median) + 10} y=${top - 26} fill=${C.amber} style=${{ font: `600 19px ${HEAD}` }}>median +${median}%</text>
-      </g>
+      ${[0, 25, 100, 200, 300, 450].map((g) => html`<g key=${g} opacity=${axis}>
+        <line x1=${sx(g)} y1=${top} x2=${sx(g)} y2=${bottom} stroke="rgba(255,255,255,.1)" strokeDasharray=${g === 0 ? "0" : "3 6"} />
+        <text x=${sx(g)} y=${bottom + 30} textAnchor="middle" fill=${muted} style=${{ font: `400 17px ${BODY}` }}>${g ? "+" : ""}${g}%</text>
+      </g>`)}
+      ${[ok, severe].map((g, i) => html`<g key=${"t" + g} opacity=${useT(30 + i * 10, 20)}>
+        <line x1=${sx(g)} y1=${top - 34} x2=${sx(g)} y2=${bottom + 8} stroke=${i ? RED : C.green} strokeWidth=${i ? 2 : 4} strokeDasharray=${i ? "6 6" : "0"} />
+        <text x=${sx(g)} y=${bottom + 30} textAnchor="middle" fill=${i ? RED : C.green} style=${{ font: `600 18px ${HEAD}` }}>+${g}%</text>
+      </g>`)}
       ${rows.map((r, ri) => {
         const y = top + ri * rowH + rowH / 2;
         const lab = useT(14 + ri * 4, 20);
         return html`<g key=${ri}>
-          <text x=${X0 - 30} y=${y + 8} textAnchor="end" fill="#fff" opacity=${lab} style=${{ font: `500 24px ${HEAD}` }}>${r.family}</text>
+          <text x=${X0 - 26} y=${y + (r.rivals ? -2 : 8)} textAnchor="end" fill="#fff" opacity=${lab} style=${{ font: `500 24px ${HEAD}` }}>${r.family}</text>
+          ${r.rivals && html`<text x=${X0 - 26} y=${y + 22} textAnchor="end" fill=${muted} opacity=${lab} style=${{ font: `400 15px ${BODY}` }}>vs ${r.rivals}</text>`}
           <line x1=${X0} y1=${y} x2=${X0 + W} y2=${y} stroke="rgba(255,255,255,.06)" />
           ${r.values.map((v, vi) => {
             const d = 20 + (k++) * 3;
             const p = spring({ frame: frame - d, fps: FPS, config: { damping: 12, stiffness: 120, mass: 0.6 } });
-            const col = v > 100 ? RED : v > (s.threshold || 50) ? C.amber : C.green;
+            const col = colOf(v);
             const x = X0 + (sx(v) - X0) * Math.min(1, p);
             return html`<g key=${vi}>
-              <circle cx=${x} cy=${y} r=${22 * Math.min(1, p)} fill=${col} opacity=".18" />
-              <circle cx=${x} cy=${y} r=${9 * Math.min(1, p)} fill=${col} />
-              ${v > MAX * 0.75 && html`<text x=${x} y=${y - 20} textAnchor="middle" fill=${col} opacity=${p} style=${{ font: `600 18px ${HEAD}` }}>+${v}%</text>`}
+              <circle cx=${x} cy=${y} r=${20 * Math.min(1, p)} fill=${col} opacity=".18" />
+              <circle cx=${x} cy=${y} r=${8 * Math.min(1, p)} fill=${col} />
+              ${(v >= 200 || vi === r.values.indexOf(Math.min(...r.values))) && html`<text x=${x} y=${y - 18} textAnchor="middle" fill=${col} opacity=${p} style=${{ font: `600 16px ${HEAD}` }}>+${v}%</text>`}
             </g>`;
           })}
         </g>`;
       })}
     </svg>
-    <div style=${{ position: "absolute", right: 120, top: 270, width: 300, display: "flex", flexDirection: "column", gap: 22 }}>
-      <${Pop} delay=${100} style=${{ ...glass, padding: "24px 28px" }}>
-        <${Counter} to=${over} delay=${104} dur=${25} suffix=${" / " + all.length} style=${{ font: `600 56px/1 ${HEAD}`, color: C.amber }} />
-        <div style=${{ marginTop: 10, font: `400 20px/1.4 ${BODY}`, color: muted }}>${s.overLabel}</div>
+    <div style=${{ position: "absolute", right: 120, top: 316, width: 300, display: "flex", flexDirection: "column", gap: 18 }}>
+      <${Pop} delay=${100} style=${{ ...glass, padding: "22px 26px" }}>
+        <${Counter} to=${over} delay=${104} dur=${25} suffix=${" / " + all.length} style=${{ font: `600 52px/1 ${HEAD}`, color: over ? RED : C.green }} />
+        <div style=${{ marginTop: 8, font: `400 19px/1.4 ${BODY}`, color: muted }}>${s.overLabel}</div>
+      <//>
+      <${Pop} delay=${106} style=${{ ...glass, padding: "22px 26px" }}>
+        <${Counter} to=${far} delay=${110} dur=${25} suffix=${" / " + all.length} style=${{ font: `600 52px/1 ${HEAD}`, color: RED }} />
+        <div style=${{ marginTop: 8, font: `400 19px/1.4 ${BODY}`, color: muted }}>${s.farLabel || `SKUs more than ${severe}% above`}</div>
       <//>
       ${(s.notes || []).map((n, i) => html`<${Pop} key=${i} delay=${112 + i * 8} style=${{ ...glass, padding: "20px 26px", font: `400 20px/1.45 ${BODY}`, color: "rgba(255,255,255,.82)" }}>${n}<//>`)}
     </div>
