@@ -458,7 +458,7 @@ function CRace({ s, meta, index, total }) {
                 background: it.hl ? `linear-gradient(90deg, rgba(0,228,135,.25), ${C.green})` : "linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.32))",
                 boxShadow: it.hl ? `0 0 30px rgba(0,228,135,.35)` : "none" }} />
               <span style=${{ position: "absolute", left: (it.v / max) * W + 16, top: "50%", transform: "translateY(-50%)", font: `600 24px/1 ${HEAD}`, whiteSpace: "nowrap" }}>
-                €${fmt(it.v, 0)}k ${t > 0.98 && growth != null && html`<span style=${{ marginLeft: 10, color: C.green, font: `500 20px/1 ${BODY}` }}>${growth}</span>`}
+                ${s.unit ? `${s.unit.prefix || ""}${fmt(it.v, s.unit.decimals || 0)}${s.unit.suffix || ""}` : `€${fmt(it.v, 0)}k`} ${t > 0.98 && growth != null && html`<span style=${{ marginLeft: 10, color: /^[−-]/.test(growth) ? RED : C.green, font: `500 20px/1 ${BODY}` }}>${growth}</span>`}
               </span>
             </div>
           </div>`;
@@ -1085,9 +1085,44 @@ function CPriorities({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 19. kartlar: firsatlar, riskler, planlar (buyuk rakam + maddeler) ----------
+// Kart: { tag, value: {value, decimals, prefix, suffix} veya "metin", label, points: [...], color }
+function CCards({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const cards = s.cards || [];
+  const cols = s.columns || Math.min(cards.length, 3);
+  // az kart varsa yazilar buyur, kartlar bos kalmasin
+  const z = cards.length <= 2 ? 1.4 : cards.length <= 4 ? 1.18 : 1;
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}>
+      <${Head} s=${s} size=${60} max=${1500} />
+      <div style=${{ position: "absolute", left: 0, right: 0, top: 200, bottom: s.note ? 56 : 0, display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridAutoRows: "1fr", gap: 22 }}>
+        ${cards.map((c, i) => {
+          const col = c.color || C.green;
+          const d = 18 + i * 8;
+          const sweep = interpolate(frame - d, [6, 40], [0, 1], ease);
+          return html`<${Pop} key=${i} delay=${d} style=${{ ...glass, position: "relative", overflow: "hidden", padding: `${24 * z}px ${28 * z}px`, display: "flex", flexDirection: "column", justifyContent: z > 1 ? "center" : "flex-start" }}>
+            <div style=${{ position: "absolute", left: 0, top: 0, height: 3, width: `${sweep * 100}%`, background: `linear-gradient(90deg, transparent, ${col})`, boxShadow: `0 0 18px ${col}` }} />
+            ${c.tag && html`<${Label} style=${{ color: col, fontSize: 19 * z }}>${c.tag}<//>`}
+            ${c.value != null && (typeof c.value === "object"
+              ? html`<${Num} n=${c.value} delay=${d + 6} style=${{ marginTop: 12 * z, font: `600 ${50 * z}px/1 ${HEAD}`, letterSpacing: "-0.03em", color: "#fff" }} />`
+              : html`<div style=${{ marginTop: 12 * z, font: `600 ${46 * z}px/1 ${HEAD}`, letterSpacing: "-0.03em" }}>${c.value}</div>`)}
+            ${c.label && html`<div style=${{ marginTop: 10 * z, font: `600 ${24 * z}px/1.2 ${HEAD}` }}>${c.label}</div>`}
+            ${(c.points || []).map((p, k) => html`<div key=${k} style=${{ marginTop: 12 * z, display: "flex", gap: 10, font: `400 ${19 * z}px/1.4 ${BODY}`, color: "rgba(255,255,255,.8)", opacity: useT(d + 14 + k * 4, 16) }}>
+              <span style=${{ color: col, flexShrink: 0 }}>›</span><span>${p}</span></div>`)}
+          <//>`;
+        })}
+      </div>
+      ${s.note && html`<${Fade} delay=${70} style=${{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "12px 22px", borderRadius: 14, border: `1px solid ${C.amber}55`,
+        background: "rgba(255,181,71,.07)", font: `500 20px/1.35 ${BODY}` }}><span style=${{ color: C.amber, fontWeight: 600 }}>${s.noteLabel || "Takeaway"} · </span>${s.note}<//>`}
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 registerSlideTypes({
   "c-cover": CCover, "c-map": CMap, "c-skyline": CSkyline, "c-section": CSection, "c-flow": CFlow,
   "c-tr-map": CTrMap, "c-race": CRace, "c-strip": CStrip, "c-funnel": CFunnel, "c-gauges": CGauges,
   "c-orbit": COrbit, "c-plays": CPlays, "c-road": CRoad, "c-country": CCountry, "c-stairs": CStairs,
-  "c-bubbles": CBubbles, "c-heat": CHeat, "c-priorities": CPriorities,
+  "c-bubbles": CBubbles, "c-heat": CHeat, "c-priorities": CPriorities, "c-cards": CCards,
 });
