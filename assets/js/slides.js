@@ -419,13 +419,13 @@ function Ripples({ size = 760, delay = 0, x = "72%", y = "50%" }) {
     <div style=${{ position: "absolute", inset: "42%", borderRadius: "50%", background: lg(C.teal, C.blue), boxShadow: `0 0 80px ${C.teal}` }} />
   </div>`;
 }
-// corridor: uc dugumlu (Turkiye - Azerbaycan - Orta Asya) donen isik yolu
+// corridor: dort dugumlu (Turkiye - Orta Asya - Kafkaslar - Rusya) donen isik yolu
 export function Beacon({ size = 760, delay = 0, x = "72%", y = "50%" }) {
   const frame = useCurrentFrame();
   const p = useSpring(delay, { damping: 200, mass: 2.4 });
   const R = size / 2 - 30;
   const rot = frame * 0.18;
-  const nodes = [0, 120, 240];
+  const nodes = [0, 90, 180, 270];
   const len = 2 * Math.PI * R;
   return html`<svg width=${size} height=${size} style=${{ position: "absolute", left: x, top: y, transform: "translate(-50%,-50%)", overflow: "visible" }}>
     <defs>

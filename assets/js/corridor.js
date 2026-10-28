@@ -2,6 +2,7 @@
 // Slayt metinleri ve rakamlar bu dosyada DEGIL, sunumun index.html dosyasindaki deck-data blogunda durur.
 // Tipler: c-cover, c-map, c-skyline, c-section, c-flow, c-tr-map, c-race, c-strip, c-funnel,
 //         c-gauges, c-orbit, c-plays, c-road, c-country, c-stairs, c-bubbles, c-heat, c-priorities
+import React from "react";
 import { useCurrentFrame, interpolate, spring, Easing } from "remotion";
 import {
   html, C, HEAD, BODY, clamp, WIDTH, HEIGHT, FPS, pad, gradText, useLook, useSpring,
@@ -119,67 +120,102 @@ function CCover({ s, meta }) {
   <//>`;
 }
 
-// ---------- 2. koridor haritasi ----------
+// ---------- 2. koridor haritasi: gercek ulke sinirlari + sehirler arasi isik hatlari ----------
+// Ulke sinirlari world-atlas (Natural Earth 1:110m) verisinden calisma aninda yuklenir; slayt verisindeki "atlas" adresi.
+let atlasCache = null;
+function loadAtlas(url) {
+  if (!atlasCache) {
+    atlasCache = Promise.all([fetch(url).then((r) => r.json()), import("https://esm.sh/topojson-client@3.1.0")])
+      .then(([topo, tj]) => tj.feature(topo, topo.objects.countries).features)
+      .catch(() => { atlasCache = null; return []; });
+  }
+  return atlasCache;
+}
+function useAtlas(url) {
+  const [geo, setGeo] = React.useState(null);
+  React.useEffect(() => {
+    let on = true;
+    if (url) loadAtlas(url).then((f) => { if (on) setGeo(f); });
+    return () => { on = false; };
+  }, [url]);
+  return geo;
+}
+function geoPath(geom, proj) {
+  const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];
+  return polys.map((poly) => poly.map((ring) => ring.map(([lo, la], i) => {
+    const [x, y] = proj(lo, la);
+    return `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+  }).join("") + "Z").join("")).join("");
+}
 function CMap({ s, meta, index, total }) {
   const frame = useCurrentFrame();
-  const W = 1680, H = 440;
+  const W = 1680, H = 520;
   const proj = projector(s.bounds, W, H);
-  const cities = (s.cities || []).map((c) => ({ ...c, xy: proj(c.lon, c.lat) }));
+  const geo = useAtlas(s.atlas);
+  const shapes = React.useMemo(() => (geo || []).map((f) => ({ id: f.id, d: geoPath(f.geometry, proj) })), [geo]);
+  const colorOf = Object.fromEntries((s.countries || []).map((c) => [c.id, c.color]));
+  const draw = useT(4, 60);
+  const cities = (s.cities || []).map((c) => ({ ...c, xy: proj(c.lon, c.lat), lit: 0 }));
   const byName = Object.fromEntries(cities.map((c) => [c.name, c]));
-  const route = (s.route || []).map((n) => byName[n]).filter(Boolean);
-  const segs = route.slice(1).map((c, i) => Math.hypot(c.xy[0] - route[i].xy[0], c.xy[1] - route[i].xy[1]));
-  const totalLen = segs.reduce((a, b) => a + b, 0) || 1;
-  const cum = [0]; segs.forEach((l, i) => cum.push(cum[i] + l / totalLen));
-  const p = interpolate(frame, [20, 110], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
-  const d = route.map((c, i) => `${i ? "L" : "M"}${c.xy[0]} ${c.xy[1]}`).join(" ");
-  // isik paketi rota uzerinde dolasir
-  const loop = ((frame - 110) / 150) % 1;
-  const pp = frame < 110 ? p : loop;
-  let k = 0; while (k < cum.length - 2 && cum[k + 1] < pp) k++;
-  const lt = segs[k] ? (pp - cum[k]) / (cum[k + 1] - cum[k]) : 0;
-  const pkt = route.length > 1 ? [route[k].xy[0] + (route[k + 1].xy[0] - route[k].xy[0]) * lt, route[k].xy[1] + (route[k + 1].xy[1] - route[k].xy[1]) * lt] : [0, 0];
+  // Her hat sirayla cizilir; bir sehir, ona ilk ulasan hatla birlikte yanar
+  const routes = (s.routes || []).map((r, ri) => {
+    const pts = (r.cities || []).map((n) => byName[n]).filter(Boolean);
+    const segs = pts.slice(1).map((c, i) => Math.hypot(c.xy[0] - pts[i].xy[0], c.xy[1] - pts[i].xy[1]));
+    const len = segs.reduce((a, b) => a + b, 0) || 1;
+    const cum = [0]; segs.forEach((l, i) => cum.push(cum[i] + l / len));
+    const start = 24 + ri * 18, dur = 30 + len / 16;
+    const p = interpolate(frame, [start, start + dur], [0, 1], clamp);
+    pts.forEach((c, i) => { c.lit = Math.max(c.lit, interpolate(p, [cum[i] - 0.03, cum[i]], [0, 1], clamp)); });
+    // isik paketi: hat cizilince bastan sona dolasmaya devam eder
+    const pp = p < 1 ? p : ((frame - start - dur) / (dur * 1.8)) % 1;
+    let k = 0; while (k < cum.length - 2 && cum[k + 1] < pp) k++;
+    const lt = cum[k + 1] > cum[k] ? (pp - cum[k]) / (cum[k + 1] - cum[k]) : 0;
+    const pkt = pts.length > 1 ? [pts[k].xy[0] + (pts[k + 1].xy[0] - pts[k].xy[0]) * lt, pts[k].xy[1] + (pts[k + 1].xy[1] - pts[k].xy[1]) * lt] : null;
+    const d = pts.map((c, i) => `${i ? "L" : "M"}${c.xy[0].toFixed(1)} ${c.xy[1].toFixed(1)}`).join(" ");
+    return { d, p, pkt, color: r.color || C.green, started: frame > start };
+  });
   const regions = s.regions || [];
   return html`<${Frame} dark=${true}>
     <div style=${pad}>
-      <${Head} s=${s} size=${68} />
-      <svg width=${W} height=${H} style=${{ position: "absolute", left: 0, top: 170, overflow: "visible" }}>
-        <defs><filter id="mglow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="8" /></filter></defs>
-        ${Array.from({ length: 34 }).map((_, i) => Array.from({ length: 9 }).map((__, j) => {
-          const x = i * 50 + 15, y = j * 50 + 10;
-          const tw = 0.05 + 0.05 * Math.sin(frame / 25 + i * 0.7 + j);
-          return html`<circle key=${i + "-" + j} cx=${x} cy=${y} r="1.6" fill="#fff" opacity=${tw} />`;
-        }))}
-        <path d=${d} fill="none" stroke=${C.green} strokeWidth="14" opacity=".35" filter="url(#mglow)" pathLength="1" strokeDasharray="1" strokeDashoffset=${1 - p} />
-        <path d=${d} fill="none" stroke="url(#mroute)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" pathLength="1" strokeDasharray="1" strokeDashoffset=${1 - p} />
-        <linearGradient id="mroute" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor=${C.amber} /><stop offset=".5" stopColor=${C.green} /><stop offset="1" stopColor=${C.teal} /></linearGradient>
-        ${(s.branches || []).map((b, i) => {
-          const a = byName[b[0]], z = byName[b[1]];
-          if (!a || !z) return null;
-          const q = interpolate(frame, [90 + i * 6, 120 + i * 6], [0, 1], clamp);
-          return html`<line key=${"b" + i} x1=${a.xy[0]} y1=${a.xy[1]} x2=${a.xy[0] + (z.xy[0] - a.xy[0]) * q} y2=${a.xy[1] + (z.xy[1] - a.xy[1]) * q}
-            stroke=${C.teal} strokeWidth="2.5" strokeDasharray="6 8" opacity=".8" />`;
+      <${Head} s=${s} size=${64} />
+      <svg width=${W} height=${H} style=${{ position: "absolute", left: 0, top: 130, overflow: "hidden" }}>
+        <defs><filter id="mglow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="7" /></filter></defs>
+        <g>
+          ${shapes.map((sh) => {
+            const col = colorOf[sh.id];
+            return html`<path key=${sh.id} d=${sh.d} fill=${col || "#ffffff"} fillOpacity=${(col ? 0.12 : 0.025) * draw}
+              stroke=${col || "#ffffff"} strokeOpacity=${col ? 0.75 : 0.16} strokeWidth=${col ? 1.6 : 0.8} strokeLinejoin="round"
+              pathLength="1" strokeDasharray="1" strokeDashoffset=${1 - draw} />`;
+          })}
+        </g>
+        ${(s.countries || []).filter((c) => c.label).map((c, i) => {
+          const [x, y] = proj(c.labelLon, c.labelLat);
+          return html`<text key=${"l" + i} x=${x} y=${y} textAnchor="middle" fill=${c.color} opacity=${0.55 * useT(40 + i * 4, 30)}
+            style=${{ font: `600 15px ${BODY}`, letterSpacing: "0.32em" }}>${c.label}</text>`;
         })}
-        ${frame > 20 && html`<g><circle cx=${pkt[0]} cy=${pkt[1]} r="22" fill=${C.green} opacity=".25" /><circle cx=${pkt[0]} cy=${pkt[1]} r="7" fill="#fff" /></g>`}
+        ${routes.map((r, i) => html`<g key=${"r" + i}>
+          <path d=${r.d} fill="none" stroke=${r.color} strokeWidth="12" opacity=".3" filter="url(#mglow)" pathLength="1" strokeDasharray="1" strokeDashoffset=${1 - r.p} />
+          <path d=${r.d} fill="none" stroke=${r.color} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" pathLength="1" strokeDasharray="1" strokeDashoffset=${1 - r.p} />
+          ${r.started && r.pkt && html`<g><circle cx=${r.pkt[0]} cy=${r.pkt[1]} r="18" fill=${r.color} opacity=".3" /><circle cx=${r.pkt[0]} cy=${r.pkt[1]} r="6" fill="#fff" /></g>`}
+        </g>`)}
         ${cities.map((c, i) => {
-          const ri = route.indexOf(c);
-          const at = ri >= 0 ? cum[ri] : 1;
-          const lit = ri >= 0 ? interpolate(p, [at - 0.05, at], [0, 1], clamp) : interpolate(frame, [110, 130], [0, 1], clamp);
           const big = c.size || 1;
           const pulse = 1 + 0.3 * Math.sin(frame / 9 + i);
           const below = c.labelPos === "below";
-          return html`<g key=${c.name} opacity=${lit}>
-            <circle cx=${c.xy[0]} cy=${c.xy[1]} r=${20 * big * pulse} fill=${c.color || C.green} opacity=".16" />
-            <circle cx=${c.xy[0]} cy=${c.xy[1]} r=${6 + 3 * big} fill="#fff" />
-            <text x=${c.xy[0]} y=${c.xy[1] + (below ? 46 : -26)} textAnchor="middle" fill="#fff" style=${{ font: `500 ${big > 1 ? 26 : 21}px ${HEAD}` }}>${c.name}</text>
+          return html`<g key=${c.name} opacity=${c.lit}>
+            <circle cx=${c.xy[0]} cy=${c.xy[1]} r=${16 * big * pulse} fill=${c.color || C.green} opacity=".18" />
+            <circle cx=${c.xy[0]} cy=${c.xy[1]} r=${4 + 2.5 * big} fill="#fff" />
+            <text x=${c.xy[0]} y=${c.xy[1] + (below ? 34 + 4 * big : -16 - 4 * big)} textAnchor="middle" fill="#fff"
+              style=${{ font: `${big > 1 ? 600 : 500} ${big > 1 ? 22 : 18}px ${HEAD}`, paintOrder: "stroke", stroke: "rgba(4,6,12,.8)", strokeWidth: 4 }}>${c.name}</text>
           </g>`;
         })}
       </svg>
-      <div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, display: "grid", gridTemplateColumns: `repeat(${regions.length}, 1fr)`, gap: 28 }}>
-        ${regions.map((r, i) => html`<${Pop} key=${i} delay=${60 + i * 12} style=${{ ...glass, padding: "26px 32px", display: "flex", gap: 26, alignItems: "center" }}>
-          <div style=${{ font: `600 54px/1 ${HEAD}`, ...gradText(`linear-gradient(120deg, ${C.green}, ${C.teal})`) }}>${String(i + 1).padStart(2, "0")}</div>
+      <div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, display: "grid", gridTemplateColumns: `repeat(${regions.length}, 1fr)`, gap: 22 }}>
+        ${regions.map((r, i) => html`<${Pop} key=${i} delay=${60 + i * 12} style=${{ ...glass, padding: "16px 22px", display: "flex", gap: 18, alignItems: "center" }}>
+          <div style=${{ font: `600 42px/1 ${HEAD}`, ...(r.color ? { color: r.color, textShadow: `0 0 24px ${r.color}66` } : gradText(`linear-gradient(120deg, ${C.green}, ${C.teal})`)) }}>${String(i + 1).padStart(2, "0")}</div>
           <div>
-            <div style=${{ font: `600 30px/1.15 ${HEAD}` }}>${r.name}</div>
-            <div style=${{ marginTop: 8, font: `400 21px/1.35 ${BODY}`, color: muted }}>${r.text}</div>
+            <div style=${{ font: `600 26px/1.15 ${HEAD}` }}>${r.name}</div>
+            <div style=${{ marginTop: 6, font: `400 18px/1.35 ${BODY}`, color: muted }}>${r.text}</div>
           </div>
         <//>`)}
       </div>
@@ -209,7 +245,11 @@ function Building({ b, i, max, delay, x, w, ground, maxH }) {
           boxShadow: on ? `0 0 10px ${seed > 0.8 ? C.green : C.amber}` : "none" }} />`;
       }))}
     </div>
-    <div style=${{ position: "absolute", left: -20, right: -20, bottom: "100%", marginBottom: 20, textAlign: "center", opacity: rise }}>
+    ${b.base && html`<div style=${{ position: "absolute", left: -6, right: -6, bottom: 0, height: h * (b.base / b.value), borderTop: `2px dashed ${C.amber}`,
+      opacity: interpolate(frame - delay, [30, 45], [0, 1], clamp), pointerEvents: "none" }}>
+      <span style=${{ position: "absolute", right: 10, top: 6, padding: "2px 6px", borderRadius: 4, background: "rgba(4,6,12,.85)", font: `600 16px/1 ${HEAD}`, color: C.amber, letterSpacing: "0.06em" }}>2025</span>
+    </div>`}
+    <div style=${{ position: "absolute", left: -20, right: -20, bottom: "100%", marginBottom: 20 + Math.max(0, h * ((b.base || 0) / b.value - 1)), textAlign: "center", opacity: rise }}>
       <${Num} n=${b} delay=${delay + 6} style=${{ font: `600 54px/1 ${HEAD}`, letterSpacing: "-0.03em" }} />
       ${b.badge && html`<div style=${{ marginTop: 10 }}><${Badge} text=${b.badge} delay=${delay + 30} color=${b.badge.startsWith("−") || b.badge.startsWith("-") ? RED : C.green} /></div>`}
     </div>
@@ -229,6 +269,7 @@ function CSkyline({ s, meta, index, total }) {
       <${Pop} delay=${30} style=${{ position: "absolute", left: 0, top: 360, width: 520 }}>
         <${Label}>${s.totalLabel}<//>
         <${Num} n=${s.total} delay=${34} dur=${70} style=${{ display: "block", marginTop: 14, font: `600 128px/1 ${HEAD}`, letterSpacing: "-0.05em", ...gradText(`linear-gradient(120deg, ${C.green}, ${C.teal})`) }} />
+        ${s.totalGrowth && html`<div style=${{ marginTop: 14 }}><${Badge} text=${s.totalGrowth} delay=${90} /></div>`}
         <div style=${{ marginTop: 18, font: `400 23px/1.45 ${BODY}`, color: muted }}>${s.note}</div>
       <//>
     </div>
@@ -842,11 +883,13 @@ function CCountry({ s, meta, index, total }) {
       </div>
       <div style=${{ position: "absolute", left: 500, top: 210, width: 560, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <${Donut} parts=${s.pipeline} delay=${36} size=${360}
-          center=${html`<${Label}>${s.pipelineLabel}<//><${Counter} to=${s.pipeline.reduce((a, b) => a + b.value, 0)} decimals=${1} prefix="€" suffix="m" delay=${36} dur=${60} style=${{ marginTop: 8, font: `600 64px/1 ${HEAD}` }} />`} />
+          center=${html`<${Label}>${s.pipelineLabel}<//>${s.pipelineCenter
+            ? html`<${Num} n=${s.pipelineCenter} delay=${36} dur=${60} style=${{ marginTop: 8, font: `600 64px/1 ${HEAD}` }} />`
+            : html`<${Counter} to=${s.pipeline.reduce((a, b) => a + b.value, 0)} decimals=${1} prefix="€" suffix="m" delay=${36} dur=${60} style=${{ marginTop: 8, font: `600 64px/1 ${HEAD}` }} />`}`} />
         <div style=${{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr", gap: 8, width: 420 }}>
           ${s.pipeline.map((x, i) => html`<${Fade} key=${i} delay=${60 + i * 6} y=${10} style=${{ display: "flex", alignItems: "center", gap: 12, font: `400 19px/1.3 ${BODY}` }}>
             <i style=${{ width: 14, height: 14, borderRadius: 4, background: cols[i % cols.length], flexShrink: 0 }} />
-            <span style=${{ flex: 1 }}>${x.label}</span><span style=${{ font: `600 20px/1 ${HEAD}` }}>€${x.value}m</span>
+            <span style=${{ flex: 1 }}>${x.label}</span><span style=${{ font: `600 20px/1 ${HEAD}` }}>${s.pipelineUnit ? `${x.value}${s.pipelineUnit}` : `€${x.value}m`}</span>
           <//>`)}
         </div>
       </div>
@@ -887,7 +930,9 @@ function CStairs({ s, meta, index, total }) {
           <div style=${{ marginTop: 10, font: `500 19px/1 ${BODY}`, color: C.amber }}>IGM ${st.igm}%</div>
         </div>
         <div style=${{ position: "absolute", left: 0, right: 0, top: "100%", marginTop: 14, textAlign: "center", font: `500 22px/1.2 ${BODY}`, color: muted }}>${st.label}</div>
-        ${st.growth && html`<div style=${{ position: "absolute", left: -gap / 2 - 60, top: -54, width: 120, textAlign: "center" }}><${Badge} text=${st.growth} delay=${50 + i * 12} /></div>`}
+        ${st.growth && html`<div style=${{ position: "absolute", top: -54, textAlign: "center",
+            // buyumede rozet iki basamak arasinda; dususte basamagin kendi ustunde (onceki basamagin ustune binmesin)
+            ...(i > 0 && st.value < steps[i - 1].value ? { left: 0, right: 0 } : { left: -gap / 2 - 60, width: 120 }) }}><${Badge} text=${st.growth} delay=${50 + i * 12} color=${/^[−-]/.test(st.growth) ? RED : C.green} /></div>`}
       </div>`;
     })}
     <div style=${{ position: "absolute", left: 100, width: 3 * (bw + gap) + 20, top: ground, height: 2, background: "rgba(255,255,255,.35)" }} />
@@ -952,9 +997,9 @@ function CBubbles({ s, meta, index, total }) {
             <span>${pr.name}</span><span style=${{ color: C.green }}>${pr.value}</span>
           </div>
           <div style=${{ marginTop: 7, height: 10, borderRadius: 5, background: "rgba(255,255,255,.07)" }}>
-            <div style=${{ height: "100%", width: `${pr.conversion * p}%`, borderRadius: 5, background: `linear-gradient(90deg, ${C.teal}, ${C.green})` }} />
+            <div style=${{ height: "100%", width: `${(pr.share ?? pr.conversion) * p}%`, borderRadius: 5, background: `linear-gradient(90deg, ${C.teal}, ${C.green})` }} />
           </div>
-          <div style=${{ marginTop: 4, font: `400 16px/1.2 ${BODY}`, color: muted }}>${pr.segment} · ${Math.round(pr.conversion * p)}% expected conversion</div>
+          <div style=${{ marginTop: 4, font: `400 16px/1.2 ${BODY}`, color: muted }}>${pr.segment} · ${pr.note || `${Math.round(pr.conversion * p)}% expected conversion`}</div>
         </div>`;
       })}
     </div>
@@ -967,7 +1012,7 @@ function CHeat({ s, meta, index, total }) {
   const frame = useCurrentFrame();
   const cols = s.columns || [];
   const rows = s.rows || [];
-  const LW = 330, CW = (1680 - LW - 14 * cols.length) / cols.length, RH = 76;
+  const LW = cols.length > 4 ? 270 : 330, CW = (1680 - LW - 14 * cols.length) / cols.length, RH = 76;
   const colors = ["rgba(255,255,255,.04)", "rgba(30,203,208,.22)", "rgba(255,181,71,.32)", "rgba(255,107,107,.42)"];
   const edges = ["rgba(255,255,255,.08)", C.teal, C.amber, RED];
   return html`<${Frame} dark=${true}>
