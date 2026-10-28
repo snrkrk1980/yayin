@@ -1155,9 +1155,54 @@ function CCards({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 20. fiyat farki dagilimi: kac urun ne kadar pahali ----------
+function CGap({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const buckets = s.buckets || [];
+  const maxN = Math.max(...buckets.map((b) => b.items.length), 1);
+  const rowH = 104, top = 300, BW = 300;
+  const cols = [C.amber, "#FF9A57", RED, "#FF4D6D", "#FF2E63"];
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}>
+      <${Head} s=${s} size=${58} max=${1600} />
+      ${s.sub && html`<${Fade} delay=${10} style=${{ marginTop: 14, font: `400 22px/1.4 ${BODY}`, color: muted }}>${s.sub}<//>`}
+    </div>
+    <div style=${{ position: "absolute", left: 120, top, width: 1180 }}>
+      ${buckets.map((b, i) => {
+        const col = b.color || cols[Math.min(i, cols.length - 1)];
+        const p = spring({ frame: frame - 18 - i * 8, fps: FPS, config: { damping: 15, stiffness: 90 } });
+        const n = b.items.length;
+        return html`<div key=${i} style=${{ position: "absolute", left: 0, right: 0, top: i * rowH, height: rowH - 16, display: "flex", alignItems: "center", gap: 22, opacity: useT(12 + i * 8, 16) }}>
+          <div style=${{ width: 170, textAlign: "right", font: `600 30px/1 ${HEAD}`, color: col }}>${b.label}</div>
+          <div style=${{ position: "relative", width: BW, height: 54 }}>
+            <div style=${{ position: "absolute", left: 0, top: 0, bottom: 0, width: (n / maxN) * BW * Math.min(1, p), borderRadius: 12,
+              background: `linear-gradient(90deg, ${col}33, ${col})`, boxShadow: `0 0 26px ${col}55` }} />
+            <div style=${{ position: "absolute", left: (n / maxN) * BW * Math.min(1, p) + 14, top: "50%", transform: "translateY(-50%)", whiteSpace: "nowrap" }}>
+              <span style=${{ font: `600 40px/1 ${HEAD}` }}>${n}</span><span style=${{ marginLeft: 8, font: `400 18px/1 ${BODY}`, color: muted }}>SKUs</span>
+            </div>
+          </div>
+          <div style=${{ flex: 1, marginLeft: 130, display: "flex", flexWrap: "wrap", gap: 8 }}>
+            ${b.items.map((it, k) => html`<span key=${k} style=${{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${col}66`, background: `${col}14`,
+              font: `500 16px/1 ${BODY}`, whiteSpace: "nowrap", opacity: useT(30 + i * 8 + k * 2, 12) }}>${it}</span>`)}
+          </div>
+        </div>`;
+      })}
+    </div>
+    <div style=${{ position: "absolute", right: 120, top: 300, width: 380, display: "flex", flexDirection: "column", gap: 18 }}>
+      ${(s.kpis || []).map((k, i) => html`<${Pop} key=${i} delay=${70 + i * 10} style=${{ ...glass, padding: "20px 26px" }}>
+        <${Num} n=${k} delay=${74 + i * 10} style=${{ font: `600 56px/1 ${HEAD}`, letterSpacing: "-0.03em", color: RED }} />
+        <div style=${{ marginTop: 8, font: `400 19px/1.35 ${BODY}`, color: muted }}>${k.label}</div>
+      <//>`)}
+    </div>
+    ${s.punch && html`<${Pop} delay=${120} style=${{ position: "absolute", left: 120, right: 120, bottom: 120, padding: "18px 28px", borderRadius: 18,
+      border: `1px solid ${RED}88`, background: "rgba(255,107,107,.10)", font: `600 28px/1.3 ${HEAD}` }}>${s.punch}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 registerSlideTypes({
   "c-cover": CCover, "c-map": CMap, "c-skyline": CSkyline, "c-section": CSection, "c-flow": CFlow,
   "c-tr-map": CTrMap, "c-race": CRace, "c-strip": CStrip, "c-funnel": CFunnel, "c-gauges": CGauges,
   "c-orbit": COrbit, "c-plays": CPlays, "c-road": CRoad, "c-country": CCountry, "c-stairs": CStairs,
-  "c-bubbles": CBubbles, "c-heat": CHeat, "c-priorities": CPriorities, "c-cards": CCards,
+  "c-bubbles": CBubbles, "c-heat": CHeat, "c-priorities": CPriorities, "c-cards": CCards, "c-gap": CGap,
 });
