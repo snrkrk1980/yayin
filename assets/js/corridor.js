@@ -494,6 +494,8 @@ function CRace({ s, meta, index, total }) {
           <div style=${{ marginTop: 10, font: `400 21px/1.4 ${BODY}`, color: muted }}>${k.label}</div>
         <//>`)}
       </div>
+      ${s.note && html`<${Fade} delay=${90} style=${{ position: "absolute", left: 0, width: 1100, bottom: 0, padding: "16px 24px", borderRadius: 14, border: `1px solid ${C.amber}55`,
+        background: "rgba(255,181,71,.07)", font: `400 21px/1.4 ${BODY}` }}><span style=${{ color: C.amber, fontWeight: 600 }}>${s.noteLabel || "Note"} · </span>${s.note}<//>`}
     </div>
     <${Footer} index=${index} total=${total} title=${meta.title} />
   <//>`;
