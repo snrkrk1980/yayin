@@ -316,6 +316,11 @@ function CFlow({ s, meta, index, total }) {
   const igmMin = 35, igmMax = 45;
   const pts = years.map((y, i) => [i * (bw + gap) + bw / 2, 110 - ((y.igm - igmMin) / (igmMax - igmMin)) * 90]);
   const lineP = useT(50, 50);
+  // satis buyume cizgisi (onceki yila gore %) cubuklarin alt bandinda; sadece growth verilen yillar
+  const gMin = -5, gMax = 10;
+  const gPts = years.map((y, i) => y.growth == null ? null : [i * (bw + gap) + bw / 2, H - 40 - ((Math.max(gMin, Math.min(gMax, y.growth)) - gMin) / (gMax - gMin)) * 100, y]).filter(Boolean);
+  const gP = useT(80, 40);
+  const tight = !!s.story;
   return html`<${Frame} dark=${true}>
     <div style=${pad}>
       <${Head} s=${s} size=${66} max=${1500} />
@@ -341,22 +346,32 @@ function CFlow({ s, meta, index, total }) {
               <rect x=${q[0] - 52} y=${q[1] - 52} width="104" height="34" rx="17" fill="rgba(255,181,71,.18)" stroke=${C.amber} />
               <text x=${q[0]} y=${q[1] - 28} textAnchor="middle" fill=${C.amber} style=${{ font: `600 20px ${HEAD}` }}>IGM ${years[i].igm}%</text>
             </g>`)}
+            ${gPts.length > 1 && html`<path d=${gPts.map((q, i) => `${i ? "L" : "M"}${q[0]} ${q[1]}`).join(" ")} fill="none" stroke=${C.teal} strokeWidth="4" strokeDasharray="10 8" opacity=${gP} />`}
+            ${gPts.map((q, i) => html`<g key=${"g" + i} opacity=${interpolate(gP, [i / Math.max(1, gPts.length) , (i + 1) / Math.max(1, gPts.length)], [0, 1], clamp)}>
+              <rect x=${q[0] - 9} y=${q[1] - 9} width="18" height="18" rx="4" fill=${C.teal} transform=${`rotate(45 ${q[0]} ${q[1]})`} />
+              <rect x=${q[0] - 74} y=${q[1] + 16} width="148" height="34" rx="17" fill="rgba(11,14,20,.85)" stroke=${C.teal} />
+              <text x=${q[0]} y=${q[1] + 40} textAnchor="middle" fill=${C.teal} style=${{ font: `600 19px ${HEAD}` }}>${q[2].growthLabel || `${q[2].growth > 0 ? "+" : ""}${q[2].growth}%`}</text>
+            </g>`)}
           </svg>
         </div>
+        ${gPts.length > 0 && html`<${Fade} delay=${90} style=${{ position: "absolute", right: 0, top: 0, display: "flex", gap: 22, font: `500 18px/1 ${BODY}`, color: muted }}>
+          <span><span style=${{ display: "inline-block", width: 22, height: 4, background: C.amber, verticalAlign: "middle", marginRight: 8 }} />IGM</span>
+          <span><span style=${{ display: "inline-block", width: 22, height: 0, borderTop: `4px dashed ${C.teal}`, verticalAlign: "middle", marginRight: 8 }} />${s.growthLegend || "Sales growth"}</span>
+        <//>`}
       </div>
-      <div style=${{ position: "absolute", left: 760, right: 0, top: 260, display: "flex", flexDirection: "column", gap: 24 }}>
+      <div style=${{ position: "absolute", left: 760, right: 0, top: 260, display: "flex", flexDirection: "column", gap: tight ? 16 : 24 }}>
         ${(s.split || []).map((sp, i) => {
           const p = useT(40 + i * 12, 50);
           const mx = Math.max(sp.from, sp.to);
           const neg = sp.to < sp.from;
-          return html`<${Pop} key=${i} delay=${36 + i * 12} style=${{ ...glass, padding: "26px 32px" }}>
+          return html`<${Pop} key=${i} delay=${36 + i * 12} style=${{ ...glass, padding: tight ? "18px 28px" : "26px 32px" }}>
             <div style=${{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style=${{ font: `600 30px/1.2 ${HEAD}` }}>${sp.label}</span>
               <${Badge} text=${sp.growth} color=${neg ? RED : C.green} delay=${60 + i * 12} />
             </div>
             ${["2026", "2027"].map((yr, k) => {
               const v = k === 0 ? sp.from : sp.from + (sp.to - sp.from) * p;
-              return html`<div key=${yr} style=${{ display: "flex", alignItems: "center", gap: 18, marginTop: 16 }}>
+              return html`<div key=${yr} style=${{ display: "flex", alignItems: "center", gap: 18, marginTop: tight ? 10 : 16 }}>
                 <span style=${{ width: 70, font: `500 20px/1 ${BODY}`, color: muted }}>${yr}</span>
                 <div style=${{ flex: 1, height: 22, borderRadius: 11, background: "rgba(255,255,255,.06)", overflow: "hidden" }}>
                   <div style=${{ height: "100%", width: `${(v / mx) * 100 * (k === 0 ? useT(30 + i * 12, 30) : 1)}%`, borderRadius: 11,
@@ -368,11 +383,13 @@ function CFlow({ s, meta, index, total }) {
           <//>`;
         })}
         <div style=${{ display: "grid", gridTemplateColumns: `repeat(${(s.facts || []).length}, 1fr)`, gap: 24 }}>
-          ${(s.facts || []).map((f, i) => html`<${Pop} key=${i} delay=${70 + i * 8} style=${{ ...glass, padding: "22px 26px" }}>
-            <div style=${{ font: `600 40px/1 ${HEAD}`, color: f.color === "red" ? RED : C.green }}>${f.value}</div>
-            <div style=${{ marginTop: 10, font: `400 19px/1.35 ${BODY}`, color: muted }}>${f.label}</div>
+          ${(s.facts || []).map((f, i) => html`<${Pop} key=${i} delay=${70 + i * 8} style=${{ ...glass, padding: tight ? "16px 20px" : "22px 26px" }}>
+            <div style=${{ font: `600 ${tight ? 34 : 40}px/1 ${HEAD}`, color: f.color === "red" ? RED : C.green }}>${f.value}</div>
+            <div style=${{ marginTop: 8, font: `400 ${tight ? 17 : 19}px/1.35 ${BODY}`, color: muted }}>${f.label}</div>
           <//>`)}
         </div>
+        ${s.story && html`<${Fade} delay=${100} style=${{ padding: "16px 24px", borderRadius: 14, border: `1px solid ${C.green}55`, background: "rgba(0,228,135,.07)", font: `400 20px/1.4 ${BODY}` }}>
+          <span style=${{ color: C.green, fontWeight: 600 }}>${s.storyLabel || "How"} · </span>${s.story}<//>`}
       </div>
     </div>
     <${Footer} index=${index} total=${total} title=${meta.title} />
@@ -940,7 +957,7 @@ function CStairs({ s, meta, index, total }) {
       <${Label} style=${{ gridColumn: "1 / -1" }}>${s.factsLabel}<//>
       ${(s.facts || []).map((f, i) => html`<${Pop} key=${i} delay=${50 + i * 8} style=${{ ...glass, padding: "22px 26px" }}>
         <${Num} n=${f} delay=${54 + i * 8} dur=${60} style=${{ font: `600 52px/1 ${HEAD}`, ...gradText(`linear-gradient(120deg, ${C.green}, ${C.teal})`) }} />
-        <div style=${{ marginTop: 10, font: `400 19px/1.35 ${BODY}`, color: muted }}>${f.label}</div>
+        <div style=${{ marginTop: 8, font: `400 ${tight ? 17 : 19}px/1.35 ${BODY}`, color: muted }}>${f.label}</div>
       <//>`)}
     </div>
     <div style=${{ position: "absolute", left: 120, right: 120, bottom: 190 }}><${Label}>${s.tickerLabel}<//></div>
