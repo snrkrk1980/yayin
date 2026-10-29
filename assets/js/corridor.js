@@ -1298,9 +1298,91 @@ function CRegion({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 22. organizasyon semasi: kalan / ayrilan roller ----------
+function COrg({ s, meta, index, total }) {
+  const cols = s.columns || [];
+  const all = cols.flat();
+  const leave = all.filter((r) => r.status === "leave").length;
+  const PINK = "#FF7AC8";
+  const core = all.filter((r) => r.status !== "leave" && !r.contractor).length + (s.leader ? 1 : 0);
+  const colOf = (r) => (r.maternity ? PINK : r.status === "leave" ? C.amber : r.contractor ? "#8B9CFF" : C.green);
+  let k = 0;
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}>
+      <${Head} s=${s} size=${54} max=${1200} />
+    </div>
+    <${Fade} delay=${8} style=${{ position: "absolute", right: 120, top: 120, display: "flex", gap: 16, font: `500 17px/1 ${BODY}` }}>
+      ${[["Stays", C.green, false], ["Contractor, stays", "#8B9CFF", false], ["Leaves", C.amber, false], ["On maternity leave", PINK, true]].map(([t, c, dash], i) => html`<span key=${i}
+        style=${{ padding: "8px 14px", borderRadius: 999, border: `1.5px ${dash ? "dashed" : "solid"} ${c}`, color: c }}>${t}</span>`)}
+    <//>
+    ${s.leader && html`<${Pop} delay=${10} style=${{ position: "absolute", left: 120, top: 250, width: 980, height: 90, borderRadius: 16, border: `1.5px solid ${C.green}`,
+      background: "rgba(0,228,135,.10)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <div style=${{ font: `600 15px/1 ${HEAD}`, letterSpacing: ".16em", color: C.green, textTransform: "uppercase" }}>${s.leader.role}</div>
+      <div style=${{ marginTop: 8, font: `600 30px/1 ${HEAD}` }}>${s.leader.name}</div>
+    <//>`}
+    ${s.global && html`<${Pop} delay=${14} style=${{ ...glass, position: "absolute", left: 1124, right: 120, top: 250, height: 90, borderRadius: 16, padding: "14px 20px", font: `400 16px/1.4 ${BODY}`, color: muted }}>
+      <b style=${{ color: "#fff" }}>Global functions stay</b> · ${s.global}<//>`}
+    <div style=${{ position: "absolute", left: 120, right: 120, top: 362, display: "grid", gridTemplateColumns: `repeat(${cols.length}, 1fr)`, gap: 14 }}>
+      ${cols.map((col, ci) => html`<div key=${ci} style=${{ display: "flex", flexDirection: "column", gap: 10 }}>
+        ${col.map((r, ri) => {
+          const c = colOf(r);
+          return html`<${Pop} key=${ri} delay=${18 + (k++) * 2} style=${{ borderRadius: 12, padding: "9px 12px", border: `1.5px ${r.maternity ? "dashed" : "solid"} ${c}`,
+            background: r.maternity ? "rgba(255,122,200,.10)" : r.status === "leave" ? "rgba(255,181,71,.07)" : r.contractor ? "rgba(139,156,255,.12)" : "rgba(0,228,135,.10)" }}>
+            <div style=${{ font: `600 16px/1.2 ${HEAD}` }}>${r.role}</div>
+            <div style=${{ marginTop: 3, font: `400 15px/1.2 ${BODY}`, color: c }}>${r.name}</div>
+          <//>`;
+        })}
+      </div>`)}
+    </div>
+    ${s.note && html`<${Fade} delay=${80} style=${{ position: "absolute", left: 120, bottom: 120, width: 1000, padding: "12px 20px", borderRadius: 14, border: `1px solid ${PINK}66`,
+      background: "rgba(255,122,200,.07)", font: `400 18px/1.4 ${BODY}` }}><span style=${{ color: PINK, fontWeight: 600 }}>${s.noteLabel || "Note"} · </span>${s.note}<//>`}
+    <${Pop} delay=${60} style=${{ position: "absolute", right: 120, bottom: 120, textAlign: "right" }}>
+      <span style=${{ font: `700 72px/1 ${HEAD}`, color: C.amber }}>${leave}</span>
+      <span style=${{ marginLeft: 12, font: `400 22px/1.3 ${BODY}`, color: muted }}>roles leave · a core of ${core} stays to close down</span>
+    <//>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+// ---------- 23. asamali yol haritasi: fazlar + aralarinda karar kapilari ----------
+function CRoadmap({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const ph = s.phases || [];
+  const n = ph.length, gap = 54, W = 1680, cw = (W - gap * (n - 1)) / n, top = 300;
+  const line = useT(10, 60);
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}>
+      <${Head} s=${s} size=${58} max=${1500} />
+    </div>
+    <div style=${{ position: "absolute", left: 120, top: top + 34, width: W * line, height: 3, borderRadius: 2,
+      background: `linear-gradient(90deg, ${C.teal}, ${C.green}, ${C.amber})`, boxShadow: `0 0 18px ${C.green}` }} />
+    ${ph.map((p, i) => {
+      const x = 120 + i * (cw + gap);
+      return html`<div key=${i}>
+        <${Pop} delay=${16 + i * 10} style=${{ position: "absolute", left: x, top: top + 70, width: cw, height: 400, ...glass, borderRadius: 20, padding: "22px 22px",
+          borderColor: `${p.color || C.green}66` }}>
+          <div style=${{ font: `700 44px/1 ${HEAD}`, color: p.color || C.green }}>${p.key}</div>
+          <div style=${{ marginTop: 12, font: `600 24px/1.15 ${HEAD}` }}>${p.title}</div>
+          ${(p.points || []).map((t, k) => html`<div key=${k} style=${{ marginTop: 10, display: "flex", gap: 8, font: `400 17px/1.35 ${BODY}`, color: "rgba(255,255,255,.8)" }}>
+            <span style=${{ color: p.color || C.green }}>›</span><span>${t}</span></div>`)}
+        <//>
+        <div style=${{ position: "absolute", left: x + cw / 2 - 9, top: top + 26, width: 18, height: 18, borderRadius: "50%", background: p.color || C.green,
+          boxShadow: `0 0 14px ${p.color || C.green}`, opacity: useT(16 + i * 10, 12) }} />
+        ${p.gate && html`<${Pop} delay=${22 + i * 10} style=${{ position: "absolute", left: x + cw + gap / 2 - 60, top: top - 6, width: 120, textAlign: "center" }}>
+          <div style=${{ width: 34, height: 34, margin: "0 auto", transform: "rotate(45deg)", border: `2px solid ${C.amber}`, background: "rgba(255,181,71,.18)" }} />
+          <div style=${{ marginTop: 10, font: `600 16px/1.2 ${HEAD}`, color: C.amber }}>${p.gate}</div>
+        <//>`}
+      </div>`;
+    })}
+    ${s.note && html`<${Fade} delay=${90} style=${{ position: "absolute", left: 120, right: 120, top: top + 500, padding: "14px 22px", borderRadius: 14, border: `1px solid ${C.amber}55`,
+      background: "rgba(255,181,71,.07)", font: `400 20px/1.4 ${BODY}` }}><span style=${{ color: C.amber, fontWeight: 600 }}>${s.noteLabel || "Note"} · </span>${s.note}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 registerSlideTypes({
   "c-cover": CCover, "c-map": CMap, "c-skyline": CSkyline, "c-section": CSection, "c-flow": CFlow,
   "c-tr-map": CTrMap, "c-race": CRace, "c-strip": CStrip, "c-funnel": CFunnel, "c-gauges": CGauges,
   "c-orbit": COrbit, "c-plays": CPlays, "c-road": CRoad, "c-country": CCountry, "c-stairs": CStairs,
-  "c-bubbles": CBubbles, "c-heat": CHeat, "c-priorities": CPriorities, "c-cards": CCards, "c-gap": CGap, "c-region": CRegion,
+  "c-bubbles": CBubbles, "c-heat": CHeat, "c-priorities": CPriorities, "c-cards": CCards, "c-gap": CGap, "c-region": CRegion, "c-org": COrg, "c-roadmap": CRoadmap,
 });
