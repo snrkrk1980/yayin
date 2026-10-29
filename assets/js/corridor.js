@@ -999,7 +999,8 @@ function CBubbles({ s, meta, index, total }) {
   const items = s.items || [];
   const max = Math.max(...items.flatMap((x) => [x.from, x.to]), 1);
   const t = interpolate(frame, [40, 110], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) });
-  const R = 95;
+  // s.mix varsa baloncuklar tek sirada kuculur, alta urun grubu ozeti gelir
+  const one = !!s.mix, R = one ? 62 : 95, step = one ? 920 / Math.max(items.length, 1) : 310;
   return html`<${Frame} dark=${true}>
     <div style=${pad}>
       <${Head} s=${s} size=${58} max=${1500} />
@@ -1007,9 +1008,11 @@ function CBubbles({ s, meta, index, total }) {
     <div style=${{ position: "absolute", left: 120, top: 280, width: 920, height: 600 }}>
       <div style=${{ position: "absolute", right: 0, top: -40, font: `600 46px/1 ${HEAD}`, color: "rgba(255,255,255,.2)" }}>${t < 0.5 ? s.fromLabel : s.toLabel}</div>
       ${items.map((it, i) => {
-        const col = i % 3, row = Math.floor(i / 3);
-        const cx = 150 + col * 310, cy = 150 + row * 290;
-        const r0 = Math.sqrt(it.from / max) * R, r1 = Math.sqrt(it.to / max) * R;
+        const col = one ? i : i % 3, row = one ? 0 : Math.floor(i / 3);
+        const cx = one ? step / 2 + col * step : 150 + col * 310, cy = one ? 100 : 150 + row * 290;
+        // en kucuk baloncuk da gorunur kalsin (orn. €39k vs €3.5m)
+        const rMin = one ? 24 : 30;
+        const r0 = Math.max(Math.sqrt(it.from / max) * R, rMin), r1 = Math.max(Math.sqrt(it.to / max) * R, rMin);
         const app = useSpring(14 + i * 6, { damping: 13, stiffness: 120 });
         const r = (r0 + (r1 - r0) * t) * app;
         const neg = it.to < it.from;
@@ -1018,14 +1021,31 @@ function CBubbles({ s, meta, index, total }) {
           <div style=${{ position: "absolute", left: cx - r0, top: cy - r0, width: r0 * 2, height: r0 * 2, borderRadius: "50%", border: "2px dashed rgba(255,255,255,.3)", opacity: app }} />
           <div style=${{ position: "absolute", left: cx - r, top: cy - r, width: r * 2, height: r * 2, borderRadius: "50%",
             background: `radial-gradient(circle at 35% 30%, ${col2}cc, ${col2}33 70%)`, boxShadow: `0 0 ${40 * t}px ${col2}66` }} />
-          <div style=${{ position: "absolute", left: cx - 140, top: cy + R + 12, width: 280, textAlign: "center" }}>
-            <div style=${{ font: `600 24px/1.15 ${HEAD}` }}>${it.label}</div>
+          <div style=${{ position: "absolute", left: cx - (one ? step / 2 : 140), top: cy + R + 12, width: one ? step : 280, textAlign: "center" }}>
+            <div style=${{ font: `600 ${one ? 21 : 24}px/1.15 ${HEAD}` }}>${it.label}</div>
             <div style=${{ marginTop: 4, font: `400 18px/1.3 ${BODY}`, color: muted }}>€${fmt(it.from + (it.to - it.from) * t)}k</div>
           </div>
           <div style=${{ position: "absolute", left: cx - 80, top: cy - 18, width: 160, textAlign: "center", font: `700 28px/1 ${HEAD}`, opacity: t, textShadow: "0 2px 12px rgba(0,0,0,.6)" }}>${it.growth}</div>
         </div>`;
       })}
     </div>
+    ${one && html`<div style=${{ position: "absolute", left: 120, top: 590, width: 920 }}>
+      <${Label}>${s.mixLabel}<//>
+      <div style=${{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 28px" }}>
+        ${s.mix.map((m, i) => {
+          const neg = /^[−-]/.test(m.growth);
+          const col = neg ? RED : C.green;
+          return html`<${Pop} key=${i} delay=${60 + i * 5} style=${{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "10px 16px", borderRadius: 12,
+            background: `${col}12`, border: `1px solid ${col}44` }}>
+            <span style=${{ font: `500 20px/1.2 ${HEAD}` }}>${m.label}<span style=${{ marginLeft: 10, font: `400 16px/1 ${BODY}`, color: muted }}>${m.value}</span></span>
+            <span style=${{ font: `600 22px/1 ${HEAD}`, color: col }}>${m.growth}</span>
+          <//>`;
+        })}
+      </div>
+      ${s.mixNote && html`<div style=${{ marginTop: 12, font: `400 18px/1.35 ${BODY}`, color: muted }}>${s.mixNote}</div>`}
+      ${s.note && html`<${Fade} delay=${90} style=${{ marginTop: 14, padding: "12px 20px", borderRadius: 14, border: `1px solid ${C.amber}55`,
+        background: "rgba(255,181,71,.07)", font: `400 19px/1.4 ${BODY}` }}><span style=${{ color: C.amber, fontWeight: 600 }}>${s.noteLabel || "Note"} · </span>${s.note}<//>`}
+    </div>`}
     <div style=${{ position: "absolute", right: 120, top: 270, width: 600 }}>
       <div style=${{ display: "flex", gap: 20 }}>
         ${(s.kpis || []).map((k, i) => html`<${Pop} key=${i} delay=${30 + i * 8} style=${{ ...glass, flex: 1, padding: "18px 22px" }}>
@@ -1047,6 +1067,8 @@ function CBubbles({ s, meta, index, total }) {
         </div>`;
       })}
     </div>
+    ${s.note && !one && html`<${Fade} delay=${90} style=${{ position: "absolute", left: 120, top: 680, width: 920, padding: "16px 24px", borderRadius: 14, border: `1px solid ${C.amber}55`,
+      background: "rgba(255,181,71,.07)", font: `400 21px/1.4 ${BODY}` }}><span style=${{ color: C.amber, fontWeight: 600 }}>${s.noteLabel || "Note"} · </span>${s.note}<//>`}
     <${Footer} index=${index} total=${total} title=${meta.title} />
   <//>`;
 }
