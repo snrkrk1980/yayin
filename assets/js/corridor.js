@@ -582,11 +582,18 @@ function CFunnel({ s, meta, index, total }) {
   const st = s.stages || [];
   const q = s.quarters || [];
   const qmax = Math.max(...q.map((x) => x.cum), 1);
-  const FW = 560, FH = 560;
+  // s.facts varsa huni kisalir, altina kisa bilgi satirlari gelir
+  const FW = 560, FH = s.facts ? 420 : 560;
   return html`<${Frame} dark=${true}>
     <div style=${pad}>
       <${Head} s=${s} size=${62} max=${1500} />
     </div>
+    ${s.facts && html`<div style=${{ position: "absolute", left: 120, top: 300 + FH + 26, width: FW, display: "flex", flexDirection: "column", gap: 10 }}>
+      ${s.facts.map((f, i) => html`<${Pop} key=${i} delay=${70 + i * 8} style=${{ ...glass, borderRadius: 14, padding: "10px 18px", display: "flex", gap: 14, alignItems: "baseline" }}>
+        <span style=${{ font: `600 24px/1 ${HEAD}`, color: C.green, whiteSpace: "nowrap" }}>${f.value}</span>
+        <span style=${{ font: `400 17px/1.3 ${BODY}`, color: muted }}>${f.label}</span>
+      <//>`)}
+    </div>`}
     <svg width=${FW} height=${FH} style=${{ position: "absolute", left: 120, top: 300, overflow: "visible" }}>
       <defs>
         <linearGradient id="fun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="rgba(255,255,255,.14)" /><stop offset="1" stopColor="rgba(0,228,135,.55)" /></linearGradient>
@@ -705,11 +712,13 @@ function COrbit({ s, meta, index, total }) {
   return html`<${Frame} dark=${true}>
     <div style=${pad}>
       <${Head} s=${s} size=${60} max=${640} />
-      <div style=${{ position: "absolute", left: 0, top: 340, width: 560, display: "flex", flexDirection: "column", gap: 20 }}>
-        ${(s.kpis || []).map((k, i) => html`<${Pop} key=${i} delay=${50 + i * 10} style=${{ ...glass, padding: "22px 28px" }}>
-          <${Num} n=${k} delay=${54 + i * 10} style=${{ font: `600 56px/1 ${HEAD}`, ...gradText(`linear-gradient(120deg, ${C.green}, ${C.teal})`) }} />
+      <div style=${{ position: "absolute", left: 0, top: s.note ? 290 : 340, width: 560, display: "flex", flexDirection: "column", gap: s.note ? 14 : 20 }}>
+        ${(s.kpis || []).map((k, i) => html`<${Pop} key=${i} delay=${50 + i * 10} style=${{ ...glass, padding: s.note ? "14px 24px" : "22px 28px" }}>
+          <${Num} n=${k} delay=${54 + i * 10} style=${{ font: `600 ${s.note ? 46 : 56}px/1 ${HEAD}`, ...gradText(`linear-gradient(120deg, ${C.green}, ${C.teal})`) }} />
           <div style=${{ marginTop: 8, font: `400 20px/1.4 ${BODY}`, color: muted }}>${k.label}</div>
         <//>`)}
+        ${s.note && html`<${Fade} delay=${100} style=${{ padding: "12px 20px", borderRadius: 14, border: `1px solid ${C.amber}55`,
+          background: "rgba(255,181,71,.07)", font: `400 18px/1.4 ${BODY}` }}><span style=${{ color: C.amber, fontWeight: 600 }}>${s.noteLabel || "Note"} · </span>${s.note}<//>`}
       </div>
     </div>
     <svg width=${WIDTH} height=${HEIGHT} style=${{ position: "absolute", inset: 0, pointerEvents: "none" }}>
@@ -734,12 +743,13 @@ function COrbit({ s, meta, index, total }) {
           <div style=${{ font: `600 ${ri === 0 ? 24 : 20}px/1.1 ${HEAD}` }}>${it.name}</div>
           ${it.role && html`<div style=${{ font: `400 16px/1.3 ${BODY}`, color: muted }}>${it.role}</div>`}
           ${it.growth && html`<div style=${{ font: `600 18px/1.3 ${HEAD}`, color: neg ? RED : C.green }}>${it.growth}</div>`}
+          ${it.bgl && html`<div style=${{ font: `600 16px/1.3 ${HEAD}`, color: C.amber }}>${it.bgl}</div>`}
         </div>
       </div>`;
     }))}
     <${Fade} delay=${90} style=${{ position: "absolute", right: 120, top: 150, display: "flex", gap: 26, font: `500 19px/1 ${BODY}`, color: muted }}>
       ${(s.legend || []).map((l, i) => html`<span key=${i} style=${{ display: "flex", alignItems: "center", gap: 10 }}>
-        <i style=${{ width: 12, height: 12, borderRadius: "50%", background: i ? C.teal : C.green }} />${l}</span>`)}
+        <i style=${{ width: 12, height: 12, borderRadius: "50%", background: [C.green, C.teal, C.amber][i] || C.teal }} />${l}</span>`)}
     <//>
     <${Footer} index=${index} total=${total} title=${meta.title} />
   <//>`;
@@ -1118,6 +1128,7 @@ function CPriorities({ s, meta, index, total }) {
   const frame = useCurrentFrame();
   const pr = s.items || [];
   const asks = s.asks || [];
+  const many = pr.length > 5;
   return html`<${Frame} dark=${true}>
     <div style=${pad}>
       <${Head} s=${s} size=${62} max=${1500} />
@@ -1132,10 +1143,10 @@ function CPriorities({ s, meta, index, total }) {
             <div style=${{ position: "absolute", left: "50%", bottom: 0, width: 4, height: "100%", transform: "translateX(-50%)",
               background: `linear-gradient(0deg, ${C.green}, transparent)`, opacity: 0.35 * beam }} />
           </div>
-          <div style=${{ position: "absolute", left: 24, right: 24, top: 26, opacity: interpolate(rise, [0.6, 1], [0, 1], clamp) }}>
+          <div style=${{ position: "absolute", left: many ? 18 : 24, right: many ? 18 : 24, top: 26, opacity: interpolate(rise, [0.6, 1], [0, 1], clamp) }}>
             <div style=${{ font: `600 56px/1 ${HEAD}`, ...gradText(`linear-gradient(120deg, ${C.green}, ${C.teal})`) }}>${String(i + 1).padStart(2, "0")}</div>
-            <div style=${{ marginTop: 14, font: `600 29px/1.12 ${HEAD}`, letterSpacing: "-0.02em" }}>${p.title}</div>
-            ${(p.points || []).map((x, k) => html`<div key=${k} style=${{ marginTop: 12, font: `400 19px/1.4 ${BODY}`, color: "rgba(255,255,255,.75)", display: "flex", gap: 10 }}>
+            <div style=${{ marginTop: 14, font: `600 ${many ? 25 : 29}px/1.12 ${HEAD}`, letterSpacing: "-0.02em" }}>${p.title}</div>
+            ${(p.points || []).map((x, k) => html`<div key=${k} style=${{ marginTop: many ? 9 : 12, font: `400 ${many ? 17 : 19}px/1.4 ${BODY}`, color: "rgba(255,255,255,.75)", display: "flex", gap: 10 }}>
               <span style=${{ color: C.green }}>›</span><span>${x}</span></div>`)}
           </div>
         </div>`;

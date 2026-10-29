@@ -4,7 +4,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { Player } from "@remotion/player";
 import { SlideComposition, FPS, WIDTH, HEIGHT, DURATION } from "./slides.js";
-import "./corridor.js?v=20261029d"; // "c-..." slayt tiplerini ekler; ?v= tarayici onbellegini asar, corridor.js degisince artirin
+import "./corridor.js?v=20261029h"; // "c-..." slayt tiplerini ekler; ?v= tarayici onbellegini asar, corridor.js degisince artirin
 
 const data = JSON.parse(document.getElementById("deck-data").textContent);
 const slides = data.slides || [];
