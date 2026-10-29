@@ -60,6 +60,13 @@ export const THEMES = {
     kickerDark: C.green, kickerLight: "#00995A", accentLight: "#00995A", glow: "0,228,135",
     bar: "linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", text: "ignite",
   },
+  // executive: yonetim kurulu sunumlari icin sade, kurumsal gorunum (acik zemin, lacivert kapak, sakin hareket)
+  executive: {
+    id: "executive", darkBg: "#0A1633", lightBg: "#F6F7F9",
+    gradDark: lg(C.green, C.teal), gradLight: lg(C.blue, "#3D5AFE"),
+    kickerDark: C.green, kickerLight: C.blue, accentLight: C.blue, glow: "20,50,255",
+    bar: "linear-gradient(180deg, rgba(20,50,255,.9), rgba(20,50,255,.7))", text: "clean",
+  },
 };
 export const ThemeCtx = React.createContext(THEMES.aurora);
 export const DarkCtx = React.createContext(true);
@@ -93,7 +100,7 @@ export function RiseText({ text = "", delay = 0, stagger = 3, style, gradientWor
       const grad = gradientWords > 0 && i >= words.length - gradientWords;
       const start = charIndex; charIndex += w.length;
       if (T.text === "letters") return html`<${Letters} key=${i} word=${w} delay=${delay + start * 0.9} grad=${grad} />`;
-      const Comp = T.text === "wipe" ? WipeWord : T.text === "pop" ? PopWord : T.text === "ignite" ? IgniteWord : Word;
+      const Comp = T.text === "wipe" ? WipeWord : T.text === "pop" ? PopWord : T.text === "ignite" ? IgniteWord : T.text === "clean" ? CleanWord : Word;
       return html`<${Comp} key=${i} word=${w} delay=${delay + i * stagger} grad=${grad} />`;
     })}
   </div>`;
@@ -150,6 +157,14 @@ function IgniteWord({ word, delay, grad }) {
       ...(grad ? gradText(g) : {}) }}>${word}</span>`;
 }
 
+// executive: kelime sakince belirip yerine oturur (bulaniklik, ziplama yok)
+function CleanWord({ word, delay, grad }) {
+  const { grad: g } = useLook();
+  const p = useSpring(delay, { damping: 200, mass: 0.7 });
+  return html`<span style=${{ display: "inline-block", paddingBottom: "0.08em", marginBottom: "-0.08em", opacity: p,
+      transform: `translateY(${interpolate(p, [0, 1], [18, 0])}px)`, ...(grad ? gradText(g) : {}) }}>${word}</span>`;
+}
+
 export function Fade({ delay = 0, y = 30, children, style }) {
   const p = useSpring(delay);
   return html`<div style=${{ opacity: p, transform: `translateY(${interpolate(p, [0, 1], [y, 0])}px)`, ...style }}>${children}</div>`;
@@ -159,7 +174,9 @@ export function Kicker({ text, delay = 0, color }) {
   const { T, dark, grad } = useLook();
   const p = useSpring(delay);
   if (!text) return null;
-  const marker = T.id === "corridor"
+  const marker = T.id === "executive"
+    ? html`<div style=${{ height: 3, width: interpolate(p, [0, 1], [0, 44]), background: dark ? C.green : T.accentLight }} />`
+    : T.id === "corridor"
     ? html`<div style=${{ position: "relative", width: interpolate(p, [0, 1], [0, 70]), height: 3, background: `linear-gradient(90deg, transparent, ${dark ? C.green : T.accentLight})` }}>
         <div style=${{ position: "absolute", right: -5, top: -4, width: 11, height: 11, borderRadius: "50%", background: dark ? C.green : T.accentLight, boxShadow: `0 0 16px ${C.green}` }} />
       </div>`
@@ -347,8 +364,28 @@ function CityNight({ dark }) {
   <//>`;
 }
 
+// executive: acik zeminde ince ust cizgi ve sagda silik nokta dokusu; koyu zeminde lacivert derinlik ve ince izgara
+function Paper({ dark }) {
+  const frame = useCurrentFrame();
+  const on = interpolate(frame, [0, 30], [0, 1], clamp);
+  const line = interpolate(frame, [0, 45], [0, 100], { ...clamp, easing: Easing.out(Easing.cubic) });
+  if (dark) return html`<${AbsoluteFill} style=${{ overflow: "hidden",
+      background: "radial-gradient(ellipse 60% 70% at 85% 40%, rgba(20,50,255,.35), transparent 70%), radial-gradient(ellipse 50% 40% at 0% 100%, rgba(30,203,208,.12), transparent 70%), linear-gradient(160deg, #0A1633 0%, #070F24 100%)" }}>
+    <div style=${{ position: "absolute", inset: 0, opacity: on * 0.5,
+      backgroundImage: "linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px)",
+      backgroundSize: "80px 80px", maskImage: "linear-gradient(90deg, transparent 20%, #000 90%)", WebkitMaskImage: "linear-gradient(90deg, transparent 20%, #000 90%)" }} />
+  <//>`;
+  return html`<${AbsoluteFill} style=${{ overflow: "hidden" }}>
+    <div style=${{ position: "absolute", left: 0, top: 0, height: 6, width: `${line}%`, background: lg(C.blue, C.teal) }} />
+    <div style=${{ position: "absolute", inset: 0, opacity: on,
+      backgroundImage: "radial-gradient(rgba(10,22,51,.07) 1.4px, transparent 1.4px)", backgroundSize: "34px 34px",
+      maskImage: "linear-gradient(90deg, transparent 55%, #000 100%)", WebkitMaskImage: "linear-gradient(90deg, transparent 55%, #000 100%)" }} />
+  <//>`;
+}
+
 export function Background({ dark }) {
   const { T } = useLook();
+  if (T.id === "executive") return html`<${Paper} dark=${dark} />`;
   if (T.id === "corridor") return html`<${CityNight} dark=${dark} />`;
   if (T.id === "blueprint") return html`<${Blueprint} dark=${dark} />`;
   if (T.id === "spotlight") return html`<${Spotlight} dark=${dark} />`;
@@ -451,8 +488,30 @@ export function Beacon({ size = 760, delay = 0, x = "72%", y = "50%" }) {
     <circle cx=${size / 2} cy=${size / 2} r=${150 * p} fill=${C.green} opacity=".08" />
   </svg>`;
 }
+// executive: yavasca cizilen ince es merkezli yaylar (tek ortak, uc yerel sirket)
+function Arcs({ size = 760, delay = 0, x = "72%", y = "50%" }) {
+  const frame = useCurrentFrame();
+  const p = useSpring(delay, { damping: 200, mass: 2.6 });
+  const rings = [
+    { r: 0.48, w: 2, c: "rgba(255,255,255,.22)", sp: 0.05 },
+    { r: 0.38, w: 6, c: C.blue, sp: -0.08 },
+    { r: 0.28, w: 3, c: C.teal, sp: 0.12 },
+    { r: 0.18, w: 8, c: C.green, sp: -0.16 },
+  ];
+  return html`<svg width=${size} height=${size} style=${{ position: "absolute", left: x, top: y, transform: "translate(-50%,-50%)", overflow: "visible" }}>
+    ${rings.map((g, i) => {
+      const R = size * g.r, len = 2 * Math.PI * R;
+      const q = interpolate(p, [i * 0.12, 1], [0, 1], clamp);
+      return html`<circle key=${i} cx=${size / 2} cy=${size / 2} r=${R} fill="none" stroke=${g.c} strokeWidth=${g.w} strokeLinecap="round"
+        strokeDasharray=${len} strokeDashoffset=${len * (1 - q * 0.78)} transform=${`rotate(${-90 + frame * g.sp * 2} ${size / 2} ${size / 2})`} />`;
+    })}
+    <circle cx=${size / 2} cy=${size / 2} r=${14 * p} fill=${C.green} />
+  </svg>`;
+}
+
 export function Motif(props) {
   const { T } = useLook();
+  if (T.id === "executive") return html`<${Arcs} ...${props} />`;
   if (T.id === "corridor") return html`<${Beacon} ...${props} />`;
   if (T.id === "blueprint") return html`<${Squares} ...${props} />`;
   if (T.id === "spotlight") return html`<${Sun} ...${props} />`;
