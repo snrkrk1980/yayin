@@ -1,7 +1,7 @@
 // "executive" slayt tipleri: yonetim kurulu (Leadership Team) sunumlari icin sade, kurumsal tasarim.
 // Acik zemin, net tablolar, sakin animasyon. Kapak ve kapanis lacivert.
 // Slayt metinleri ve rakamlar bu dosyada DEGIL, sunumun index.html dosyasindaki deck-data blogunda durur.
-// Tipler: e-cover, e-summary, e-table, e-gap, e-bridge, e-cards, e-model, e-compare, e-engine, e-timeline, e-ask, e-closing
+// Tipler: e-cover, e-summary, e-table, e-gap, e-bridge, e-cards, e-model, e-compare, e-shift, e-engine, e-timeline, e-ask, e-closing
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 import {
@@ -362,11 +362,12 @@ function EModel({ s, meta, index, total }) {
 }
 
 // ---------- 8. secenek karsilastirma matrisi ----------
-// options: [{ name, accent }], rows: [{ label, cells: [{ r: "good"|"mid"|"bad", t }] }]
+// options: [{ name, sub, accent, verdict, r }], rows: [{ label, cells: [{ r: "good"|"mid"|"bad", t }] }]
 function ECompare({ s, meta, index, total }) {
   const opts = s.options || [];
   const rows = s.rows || [];
   const dot = { good: GREEN, mid: AMBER, bad: RED };
+  const hasVerdict = opts.some((o) => o.verdict);
   const acc = opts.findIndex((o) => o.accent);
   const grid = `330px repeat(${opts.length}, 1fr)`;
   return html`<${Frame} dark=${false}>
@@ -381,9 +382,11 @@ function ECompare({ s, meta, index, total }) {
             ${opts.map((o, j) => html`<${Rise} key=${j} delay=${12 + j * 5} style=${{ padding: "0 24px", font: `600 26px/1.2 ${HEAD}`, color: o.accent ? BLUE : INK }}>
               ${o.name}
               ${o.sub && html`<div style=${{ marginTop: 4, font: `400 17px/1.3 ${BODY}`, color: MUTED }}>${o.sub}</div>`}
+              ${o.verdict && html`<div style=${{ display: "inline-block", marginTop: 12, padding: "7px 14px", borderRadius: 999, background: `${dot[o.r] || MUTED}1A`,
+                font: `600 17px/1.1 ${BODY}`, color: dot[o.r] || MUTED }}>${o.verdict}</div>`}
             <//>`)}
           </div>
-          <div style=${{ position: "absolute", left: 0, right: 0, top: 96, bottom: 0, display: "flex", flexDirection: "column" }}>
+          <div style=${{ position: "absolute", left: 0, right: 0, top: hasVerdict ? 146 : 96, bottom: 0, display: "flex", flexDirection: "column" }}>
           ${rows.map((r, i) => html`<${Rise} key=${i} delay=${26 + i * 6} y=${10} style=${{ flex: 1, position: "relative", display: "grid", gridTemplateColumns: grid, alignItems: "center", borderBottom: `1px solid ${LINE}` }}>
             <div style=${{ font: `600 24px/1.25 ${HEAD}`, color: INK, paddingRight: 20 }}>${r.label}</div>
             ${(r.cells || []).map((c, j) => html`<div key=${j} style=${{ padding: "0 24px", display: "flex", gap: 14, alignItems: "flex-start" }}>
@@ -400,8 +403,62 @@ function ECompare({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 8b. maliyet tasinir, yok olmaz: solda tasinan fonksiyonlar, sagda sonuc zinciri ----------
+// fromTitle, functions: [...], to: "Regional hub", chainTitle, chain: [{ title, text }], punch
+function EShift({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const fns = s.functions || [];
+  const chain = s.chain || [];
+  const line = interpolate(frame - 60, [0, 60], [0, 1], ease);
+  return html`<${Frame} dark=${false}>
+    <div style=${pad}>
+      <${Head} s=${s} />
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.punch ? 112 : 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 36 }}>
+        <${Rise} delay=${12} style=${{ ...card, padding: "26px 32px", display: "flex", flexDirection: "column" }}>
+          <${Tag}>${s.fromTitle}<//>
+          <div style=${{ flex: 1, marginTop: 10, display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
+            ${fns.map((f, i) => {
+              const q = interpolate(frame - 20 - i * 6, [0, 20], [0, 1], ease);
+              return html`<div key=${i} style=${{ display: "grid", gridTemplateColumns: "1fr 64px 220px", alignItems: "center", opacity: q }}>
+                <span style=${{ font: `500 24px/1.25 ${BODY}`, color: INK }}>${f}</span>
+                <span style=${{ height: 2, background: MUTED, transform: `scaleX(${q})`, transformOrigin: "left", position: "relative" }}>
+                  <span style=${{ position: "absolute", right: -2, top: -7, color: MUTED, fontSize: 16, lineHeight: 1 }}>▶</span>
+                </span>
+                <span style=${{ marginLeft: 14, padding: "8px 14px", borderRadius: 8, background: "rgba(214,140,31,.12)", color: "#9A5F0C", font: `600 18px/1 ${BODY}`, textAlign: "center", whiteSpace: "nowrap" }}>${s.to}</span>
+              </div>`;
+            })}
+          </div>
+        <//>
+        <${Rise} delay=${40} style=${{ ...card, padding: "26px 32px", display: "flex", flexDirection: "column" }}>
+          <${Tag} color=${RED}>${s.chainTitle}<//>
+          <div style=${{ position: "relative", flex: 1, marginTop: 10, display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
+            <div style=${{ position: "absolute", left: 17, top: 30, bottom: 30, width: 2, background: LINE }}>
+              <div style=${{ height: `${line * 100}%`, background: `linear-gradient(${AMBER}, ${RED})` }} />
+            </div>
+            ${chain.map((c, i) => {
+              const last = i === chain.length - 1;
+              const col = last ? RED : AMBER;
+              return html`<${Rise} key=${i} delay=${58 + i * 10} y=${10} style=${{ position: "relative", display: "flex", gap: 22, alignItems: "flex-start" }}>
+                <span style=${{ width: 36, height: 36, borderRadius: "50%", background: last ? RED : "#fff", border: `3px solid ${col}`, flexShrink: 0,
+                  font: `600 17px/30px ${HEAD}`, textAlign: "center", color: last ? "#fff" : col }}>${i + 1}</span>
+                <div>
+                  <div style=${{ font: `600 25px/1.25 ${HEAD}`, color: last ? RED : INK }}>${c.title}</div>
+                  ${c.text && html`<div style=${{ marginTop: 3, font: `400 19px/1.38 ${BODY}`, color: MUTED }}>${c.text}</div>`}
+                </div>
+              <//>`;
+            })}
+          </div>
+        <//>
+      </div>
+      ${s.punch && html`<${Rise} delay=${118} style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 86, borderRadius: 14, background: NAVY, color: "#fff",
+        display: "flex", alignItems: "center", padding: "0 34px", font: `600 28px/1.3 ${HEAD}` }}>${s.punch}<//>`}
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 // ---------- 9. ticari motor: Trade ve Project yan yana dongu ----------
-// columns: [{ title, tag, steps: [...], text, punch }]
+// columns: [{ title, tag, steps: [...], text, risk: { title, points: [...] }, punch }]
 function EEngine({ s, meta, index, total }) {
   const frame = useCurrentFrame();
   const cols = s.columns || [];
@@ -414,17 +471,23 @@ function EEngine({ s, meta, index, total }) {
           return html`<${Rise} key=${i} delay=${d} style=${{ ...card, padding: "30px 36px", display: "flex", flexDirection: "column" }}>
             <${Tag} color=${i ? C.teal : BLUE}>${c.tag}<//>
             <div style=${{ marginTop: 10, font: `600 38px/1.2 ${HEAD}`, color: INK }}>${c.title}</div>
-            <div style=${{ marginTop: 30, display: "flex", alignItems: "center", flexWrap: "wrap", rowGap: 14 }}>
+            <div style=${{ marginTop: c.risk ? 20 : 30, display: "flex", alignItems: "center", flexWrap: "wrap", rowGap: 14 }}>
               ${(c.steps || []).map((st, k) => {
                 const q = interpolate(frame - d - 10 - k * 6, [0, 16], [0, 1], ease);
                 return html`<div key=${k} style=${{ display: "flex", alignItems: "center", opacity: q }}>
-                  <span style=${{ padding: "11px 18px", borderRadius: 999, background: i ? "rgba(30,203,208,.12)" : "rgba(20,50,255,.08)", font: `600 21px/1 ${BODY}`, color: i ? "#0B7F83" : BLUE, whiteSpace: "nowrap" }}>${st}</span>
-                  ${k < c.steps.length - 1 && html`<span style=${{ margin: "0 8px", color: MUTED, fontSize: 20 }}>→</span>`}
+                  <span style=${{ padding: c.risk ? "9px 14px" : "11px 18px", borderRadius: 999, background: i ? "rgba(30,203,208,.12)" : "rgba(20,50,255,.08)", font: `600 ${c.risk ? 18 : 21}px/1 ${BODY}`, color: i ? "#0B7F83" : BLUE, whiteSpace: "nowrap" }}>${st}</span>
+                  ${k < c.steps.length - 1 && html`<span style=${{ margin: c.risk ? "0 5px" : "0 8px", color: MUTED, fontSize: 18 }}>→</span>`}
                 </div>`;
               })}
             </div>
-            <div style=${{ marginTop: 34, font: `400 26px/1.5 ${BODY}`, color: "#2E3440", flex: 1 }}>${c.text}</div>
-            ${c.punch && html`<div style=${{ marginTop: 18, paddingTop: 20, borderTop: `1px solid ${LINE}`, font: `600 27px/1.35 ${HEAD}`, color: i ? "#0B7F83" : BLUE }}>${c.punch}</div>`}
+            <div style=${{ marginTop: c.risk ? 22 : 34, font: `400 ${c.risk ? 22 : 26}px/1.45 ${BODY}`, color: "#2E3440", flex: c.risk ? "none" : 1 }}>${c.text}</div>
+            ${c.risk && html`<${Rise} delay=${d + 40} y=${10} style=${{ marginTop: 18, flex: 1, padding: "14px 22px", borderRadius: 12, background: "rgba(214,69,69,.06)", borderLeft: `4px solid ${RED}` }}>
+              <${Tag} color=${RED}>${c.risk.title}<//>
+              ${(c.risk.points || []).map((p, k) => html`<${Rise} key=${k} delay=${d + 48 + k * 6} y=${6} style=${{ marginTop: 11, display: "flex", gap: 12, font: `400 21px/1.38 ${BODY}`, color: INK }}>
+                <span style=${{ color: RED, fontWeight: 600, flexShrink: 0 }}>✕</span><span>${p}</span>
+              <//>`)}
+            <//>`}
+            ${c.punch && html`<div style=${{ marginTop: c.risk ? 14 : 18, paddingTop: c.risk ? 14 : 20, borderTop: `1px solid ${LINE}`, font: `600 ${c.risk ? 24 : 27}px/1.3 ${HEAD}`, color: i ? "#0B7F83" : BLUE }}>${c.punch}</div>`}
           <//>`;
         })}
       </div>
@@ -516,5 +579,5 @@ function EClosing({ s, meta }) {
 
 registerSlideTypes({
   "e-cover": ECover, "e-summary": ESummary, "e-table": ETable, "e-gap": EGap, "e-bridge": EBridge, "e-cards": ECards,
-  "e-model": EModel, "e-compare": ECompare, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
+  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
 });
