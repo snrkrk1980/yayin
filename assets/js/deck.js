@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { Player } from "@remotion/player";
 import { SlideComposition, FPS, WIDTH, HEIGHT, DURATION } from "./slides.js";
 import "./corridor.js?v=20261029k"; // "c-..." slayt tiplerini ekler; ?v= tarayici onbellegini asar, corridor.js degisince artirin
-import "./executive.js?v=20261031h"; // "e-..." slayt tipleri (executive stili); executive.js degisince ?v= artirin
+import "./executive.js?v=20261031p"; // "e-..." slayt tipleri (executive stili); executive.js degisince ?v= artirin
 
 const data = JSON.parse(document.getElementById("deck-data").textContent);
 const slides = data.slides || [];

@@ -1,7 +1,7 @@
 // "executive" slayt tipleri: yonetim kurulu (Leadership Team) sunumlari icin sade, kurumsal tasarim.
 // Acik zemin, net tablolar, sakin animasyon. Kapak ve kapanis lacivert.
 // Slayt metinleri ve rakamlar bu dosyada DEGIL, sunumun index.html dosyasindaki deck-data blogunda durur.
-// Tipler: e-cover, e-summary, e-table, e-gap, e-bridge, e-cards, e-model, e-compare, e-shift, e-decline, e-channel, e-engine, e-timeline, e-ask, e-closing
+// Tipler: e-cover, e-summary, e-table, e-gap, e-bridge, e-cards, e-model, e-compare, e-shift, e-decline, e-channel, e-stats, e-engine, e-timeline, e-ask, e-closing
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 import {
@@ -391,7 +391,7 @@ function ECompare({ s, meta, index, total }) {
             <div style=${{ font: `600 24px/1.25 ${HEAD}`, color: INK, paddingRight: 20 }}>${r.label}</div>
             ${(r.cells || []).map((c, j) => html`<div key=${j} style=${{ padding: "0 24px", display: "flex", gap: 14, alignItems: "flex-start" }}>
               <span style=${{ width: 16, height: 16, borderRadius: "50%", background: dot[c.r] || MUTED, flexShrink: 0, marginTop: 6 }} />
-              <span style=${{ font: `400 21px/1.38 ${BODY}`, color: "#2E3440" }}>${c.t}</span>
+              <span style=${{ font: `${opts[j]?.accent && c.r === "good" ? 600 : 400} 21px/1.38 ${BODY}`, color: opts[j]?.accent && c.r === "good" ? "#00875A" : "#2E3440" }}>${c.t}</span>
             </div>`)}
           <//>`)}
           </div>
@@ -409,27 +409,34 @@ function EShift({ s, meta, index, total }) {
   const frame = useCurrentFrame();
   const fns = s.functions || [];
   const chain = s.chain || [];
-  const line = interpolate(frame - 60, [0, 60], [0, 1], ease);
+  const line = interpolate(frame - (fns.length ? 60 : 30), [0, 60], [0, 1], ease);
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
-      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.punch ? 112 : 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 36 }}>
-        <${Rise} delay=${12} style=${{ ...card, padding: "26px 32px", display: "flex", flexDirection: "column" }}>
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.punch ? 112 : 0, display: "grid", gridTemplateColumns: !fns.length ? "1fr" : s.wideLeft ? "1.45fr 1fr" : "1fr 1fr", gap: 36 }}>
+        ${fns.length > 0 && html`<${Rise} delay=${12} style=${{ ...card, padding: "22px 30px", display: "flex", flexDirection: "column" }}>
           <${Tag}>${s.fromTitle}<//>
           <div style=${{ flex: 1, marginTop: 10, display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
-            ${fns.map((f, i) => {
+            ${fns.map((f0, i) => {
+              // f: "metin" ya da { name, to, why, bad } (bad: uzaktan yapilamaz, kirmizi)
+              const f = typeof f0 === "string" ? { name: f0 } : f0;
               const q = interpolate(frame - 20 - i * 6, [0, 20], [0, 1], ease);
-              return html`<div key=${i} style=${{ display: "grid", gridTemplateColumns: "1fr 64px 220px", alignItems: "center", opacity: q }}>
-                <span style=${{ font: `500 24px/1.25 ${BODY}`, color: INK }}>${f}</span>
-                <span style=${{ height: 2, background: MUTED, transform: `scaleX(${q})`, transformOrigin: "left", position: "relative" }}>
-                  <span style=${{ position: "absolute", right: -2, top: -7, color: MUTED, fontSize: 16, lineHeight: 1 }}>▶</span>
-                </span>
-                <span style=${{ marginLeft: 14, padding: "8px 14px", borderRadius: 8, background: "rgba(214,140,31,.12)", color: "#9A5F0C", font: `600 18px/1 ${BODY}`, textAlign: "center", whiteSpace: "nowrap" }}>${s.to}</span>
+              const tagBg = f.bad ? "rgba(214,69,69,.10)" : "rgba(214,140,31,.12)";
+              const tagFg = f.bad ? RED : "#9A5F0C";
+              return html`<div key=${i} style=${{ opacity: q, paddingBottom: f.why ? 8 : 0, borderBottom: f.why && i < fns.length - 1 ? `1px solid ${LINE}` : "none" }}>
+                <div style=${{ display: "grid", gridTemplateColumns: `1fr ${f.why ? 44 : 64}px ${f.why ? 210 : 220}px`, alignItems: "center" }}>
+                  <span style=${{ font: `${f.why ? 600 : 500} ${f.why ? 22 : 24}px/1.25 ${f.why ? HEAD : BODY}`, color: INK }}>${f.name}</span>
+                  <span style=${{ height: 2, background: MUTED, transform: `scaleX(${q})`, transformOrigin: "left", position: "relative" }}>
+                    <span style=${{ position: "absolute", right: -2, top: -7, color: MUTED, fontSize: 16, lineHeight: 1 }}>▶</span>
+                  </span>
+                  <span style=${{ marginLeft: 12, padding: "7px 12px", borderRadius: 8, background: tagBg, color: tagFg, font: `600 17px/1 ${BODY}`, textAlign: "center", whiteSpace: "nowrap" }}>${f.to || s.to}</span>
+                </div>
+                ${f.why && html`<div style=${{ marginTop: 4, font: `400 17px/1.35 ${BODY}`, color: MUTED }}>${f.why}</div>`}
               </div>`;
             })}
           </div>
-        <//>
-        <${Rise} delay=${40} style=${{ ...card, padding: "26px 32px", display: "flex", flexDirection: "column" }}>
+        <//>`}
+        <${Rise} delay=${fns.length ? 40 : 12} style=${{ ...card, padding: "26px 32px", display: "flex", flexDirection: "column" }}>
           <${Tag} color=${RED}>${s.chainTitle}<//>
           <div style=${{ position: "relative", flex: 1, marginTop: 10, display: "flex", flexDirection: "column", justifyContent: "space-around" }}>
             <div style=${{ position: "absolute", left: 17, top: 30, bottom: 30, width: 2, background: LINE }}>
@@ -438,12 +445,12 @@ function EShift({ s, meta, index, total }) {
             ${chain.map((c, i) => {
               const last = i === chain.length - 1;
               const col = last ? RED : AMBER;
-              return html`<${Rise} key=${i} delay=${58 + i * 10} y=${10} style=${{ position: "relative", display: "flex", gap: 22, alignItems: "flex-start" }}>
+              return html`<${Rise} key=${i} delay=${(fns.length ? 58 : 28) + i * 10} y=${10} style=${{ position: "relative", display: "flex", gap: 22, alignItems: "flex-start" }}>
                 <span style=${{ width: 36, height: 36, borderRadius: "50%", background: last ? RED : "#fff", border: `3px solid ${col}`, flexShrink: 0,
                   font: `600 17px/30px ${HEAD}`, textAlign: "center", color: last ? "#fff" : col }}>${i + 1}</span>
                 <div>
-                  <div style=${{ font: `600 25px/1.25 ${HEAD}`, color: last ? RED : INK }}>${c.title}</div>
-                  ${c.text && html`<div style=${{ marginTop: 3, font: `400 19px/1.38 ${BODY}`, color: MUTED }}>${c.text}</div>`}
+                  <div style=${{ font: `600 ${fns.length ? 25 : 30}px/1.25 ${HEAD}`, color: last ? RED : INK }}>${c.title}</div>
+                  ${c.text && html`<div style=${{ marginTop: 3, font: `400 ${fns.length ? 19 : 22}px/1.38 ${BODY}`, color: MUTED }}>${c.text}</div>`}
                 </div>
               <//>`;
             })}
@@ -466,7 +473,7 @@ function EDecline({ s, meta, index, total }) {
   const cards = s.cards || [];
   const n = ph.length;
   const p = interpolate(frame - 20, [0, 70], [0, 1], ease);
-  const H = 200;
+  const H = s.chartH || 200;
   const y = (val) => 16 + (1 - val / 100) * (H - 30);
   // tek egri (values, maviden kirmiziya) ya da birden cok egri (series: [{ values, color, label }])
   const series = (s.series || [{ values: v }]).map((x) => {
@@ -597,6 +604,44 @@ function EChannel({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 8e. buyuk rakamlar + bugun / EROP ile iki blok ----------
+// stats: [{ value, label, color }], left: { title, points }, right: { title, points }
+function EStats({ s, meta, index, total }) {
+  const stats = s.stats || [];
+  const L = s.left || {};
+  const R = s.right || {};
+  return html`<${Frame} dark=${false}>
+    <div style=${pad}>
+      <${Head} s=${s} />
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 200, display: "grid", gridTemplateColumns: `repeat(${stats.length}, 1fr)`, gap: 24 }}>
+        ${stats.map((st, i) => {
+          const col = colorOf(st.color);
+          return html`<${Rise} key=${i} delay=${12 + i * 7} style=${{ borderTop: `4px solid ${col}`, paddingTop: 16 }}>
+            <${Val} v=${st.value} delay=${18 + i * 7} style=${{ display: "block", font: `600 78px/1 ${HEAD}`, letterSpacing: "-0.03em", color: col }} />
+            <div style=${{ marginTop: 10, font: `500 21px/1.32 ${BODY}`, color: INK }}>${st.label}</div>
+          <//>`;
+        })}
+      </div>
+      <div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 330, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
+        <${Rise} delay=${50} style=${{ ...card, padding: "26px 34px", borderLeft: `5px solid ${RED}` }}>
+          <${Tag} color=${RED}>${L.title}<//>
+          ${(L.points || []).map((p, k) => html`<${Rise} key=${k} delay=${58 + k * 5} y=${8} style=${{ marginTop: 16, display: "flex", gap: 14, font: `400 22px/1.38 ${BODY}`, color: INK }}>
+            <span style=${{ color: RED, fontWeight: 600, flexShrink: 0 }}>✕</span><span>${p}</span>
+          <//>`)}
+        <//>
+        <${Rise} delay=${70} style=${{ background: NAVY, borderRadius: 16, padding: "26px 34px", color: "#fff", position: "relative", overflow: "hidden" }}>
+          <div style=${{ position: "absolute", right: -110, top: -110, width: 320, height: 320, borderRadius: "50%", border: "2px solid rgba(255,255,255,.08)" }} />
+          <${Tag} color=${C.green}>${R.title}<//>
+          ${(R.points || []).map((p, k) => html`<${Rise} key=${k} delay=${78 + k * 5} y=${8} style=${{ marginTop: 16, display: "flex", gap: 14, font: `${k === R.points.length - 1 ? 600 : 400} 22px/1.38 ${BODY}`, color: k === R.points.length - 1 ? C.green : "#fff" }}>
+            <span style=${{ color: C.green, fontWeight: 600, flexShrink: 0 }}>✓</span><span>${p}</span>
+          <//>`)}
+        <//>
+      </div>
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 // ---------- 9. ticari motor: Trade ve Project yan yana dongu ----------
 // columns: [{ title, tag, steps: [...], text, risk: { title, points: [...] }, punch }]
 function EEngine({ s, meta, index, total }) {
@@ -644,10 +689,11 @@ function ETimeline({ s, meta, index, total }) {
   const steps = s.steps || [];
   const line = interpolate(frame - 14, [0, 50], [0, 1], ease);
   const cards = s.cards || [];
+  const big = cards.length === 0; // kart yoksa cizelge ortaya iner, yazilar buyur
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
-      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 260 : 215 }}>
+      <div style=${{ position: "absolute", left: 0, right: 0, top: (s.sub ? 260 : 215) + (big ? 90 : 0) }}>
         <div style=${{ position: "relative", height: 4, background: LINE, borderRadius: 2, margin: "26px 0 0" }}>
           <div style=${{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${line * 100}%`, background: BLUE, borderRadius: 2 }} />
         </div>
@@ -657,12 +703,13 @@ function ETimeline({ s, meta, index, total }) {
             return html`<${Rise} key=${i} delay=${d} style=${{ position: "relative", paddingTop: 34 }}>
               <div style=${{ position: "absolute", top: -14, left: 0, width: 24, height: 24, borderRadius: "50%", background: "#fff", border: `5px solid ${BLUE}` }} />
               <${Tag} color=${BLUE}>${st.when}<//>
-              <div style=${{ marginTop: 10, font: `600 28px/1.25 ${HEAD}`, color: INK }}>${st.title}</div>
-              <div style=${{ marginTop: 8, font: `400 21px/1.42 ${BODY}`, color: MUTED }}>${st.text}</div>
+              <div style=${{ marginTop: 10, font: `600 ${big ? 34 : 28}px/1.25 ${HEAD}`, color: INK }}>${st.title}</div>
+              <div style=${{ marginTop: 8, font: `400 ${big ? 24 : 21}px/1.42 ${BODY}`, color: MUTED }}>${st.text}</div>
             <//>`;
           })}
         </div>
       </div>
+      <${Note} s=${s} delay=${70} />
       ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 250, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
         ${cards.map((c, i) => html`<${Rise} key=${i} delay=${70 + i * 8} style=${{ ...card, padding: "22px 28px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
           <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
@@ -719,5 +766,5 @@ function EClosing({ s, meta }) {
 
 registerSlideTypes({
   "e-cover": ECover, "e-summary": ESummary, "e-table": ETable, "e-gap": EGap, "e-bridge": EBridge, "e-cards": ECards,
-  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
+  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-stats": EStats, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
 });
