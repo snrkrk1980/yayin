@@ -1,7 +1,7 @@
 // "executive" slayt tipleri: yonetim kurulu (Leadership Team) sunumlari icin sade, kurumsal tasarim.
 // Acik zemin, net tablolar, sakin animasyon. Kapak ve kapanis lacivert.
 // Slayt metinleri ve rakamlar bu dosyada DEGIL, sunumun index.html dosyasindaki deck-data blogunda durur.
-// Tipler: e-cover, e-summary, e-table, e-gap, e-bridge, e-cards, e-model, e-compare, e-shift, e-engine, e-timeline, e-ask, e-closing
+// Tipler: e-cover, e-summary, e-table, e-gap, e-bridge, e-cards, e-model, e-compare, e-shift, e-decline, e-channel, e-engine, e-timeline, e-ask, e-closing
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 import {
@@ -283,7 +283,7 @@ function ECards({ s, meta, index, total }) {
   const cols = s.columns || Math.min(cards.length, 3);
   // rakamsiz kartlarda yazi buyur, kart bos kalmasin
   const noValues = cards.every((c) => c.value == null);
-  const z = (cards.length <= 3 ? 1.12 : 1) * (noValues ? 1.2 : 1);
+  const z = s.scale || (cards.length <= 3 ? 1.12 : 1) * (noValues ? 1.2 : 1);
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
@@ -457,6 +457,146 @@ function EShift({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 8c. devir sonrasi satis egrisi: asamalar + alt kartlar ----------
+// chartLabel, values: [100, ...] ya da series: [{ values, color, label, labelBelow }], phases: [{ when, title, text, color }], cards: [{ tag, title, text, color }]
+function EDecline({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const ph = s.phases || [];
+  const v = s.values || [];
+  const cards = s.cards || [];
+  const n = ph.length;
+  const p = interpolate(frame - 20, [0, 70], [0, 1], ease);
+  const H = 200;
+  const y = (val) => 16 + (1 - val / 100) * (H - 30);
+  // tek egri (values, maviden kirmiziya) ya da birden cok egri (series: [{ values, color, label }])
+  const series = (s.series || [{ values: v }]).map((x) => {
+    const pts = x.values.map((val, i) => [((i + 0.5) * 1000) / n, y(val)]);
+    const line = "M" + pts.map((q) => q.join(",")).join(" L");
+    return { ...x, pts, line, col: x.color ? colorOf(x.color) : null };
+  });
+  const { pts, line } = series[0];
+  const area = `${line} L${pts[pts.length - 1][0]},${H} L${pts[0][0]},${H} Z`;
+  const dotCol = (x, i) => x.col || (i < 2 ? BLUE : RED);
+  const phaseCol = (st, i) => (st.color ? colorOf(st.color) : s.series ? BLUE : i < 2 ? BLUE : RED);
+  return html`<${Frame} dark=${false}>
+    <div style=${pad}>
+      <${Head} s=${s} />
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205 }}>
+        ${s.chartLabel && html`<${Rise} delay=${12}><${Tag} color=${MUTED}>${s.chartLabel}<//><//>`}
+        <div style=${{ position: "relative", height: H, marginTop: 14 }}>
+          <svg viewBox=${`0 0 1000 ${H}`} preserveAspectRatio="none" style=${{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
+            <defs>
+              <linearGradient id="declLine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor=${BLUE} /><stop offset="0.4" stopColor=${BLUE} /><stop offset="1" stopColor=${RED} /></linearGradient>
+              <linearGradient id="declArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor=${RED} stopOpacity="0.12" /><stop offset="1" stopColor=${RED} stopOpacity="0" /></linearGradient>
+              <clipPath id="declClip"><rect x="0" y="-20" width=${1000 * p} height=${H + 40} /></clipPath>
+            </defs>
+            <line x1="0" y1=${H} x2="1000" y2=${H} stroke=${LINE} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+            <g clipPath="url(#declClip)">
+              ${!s.series && html`<path d=${area} fill="url(#declArea)" />`}
+              ${series.map((x, k) => html`<path key=${k} d=${x.line} fill="none" stroke=${x.col || "url(#declLine)"} strokeWidth="5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />`)}
+            </g>
+          </svg>
+          ${series.map((x, k) => x.pts.map((q, i) => html`<div key=${k + "-" + i} style=${{ position: "absolute", left: `${((i + 0.5) * 100) / n}%`, top: q[1] - 9, width: 18, height: 18, marginLeft: -9, borderRadius: "50%",
+            background: "#fff", border: `4px solid ${dotCol(x, i)}`, opacity: interpolate(frame - 24 - i * 13, [0, 10], [0, 1], ease) }} />`))}
+          ${series.filter((x) => x.label).map((x, k) => html`<div key=${"l" + k} style=${{ position: "absolute", right: 0, top: x.pts[x.pts.length - 1][1] + (x.labelBelow ? 16 : -40),
+            font: `600 20px/1.2 ${BODY}`, color: x.col, whiteSpace: "nowrap", opacity: interpolate(frame - 90, [0, 14], [0, 1], ease) }}>${x.label}</div>`)}
+        </div>
+        <div style=${{ marginTop: 18, display: "grid", gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 20 }}>
+          ${ph.map((st, i) => html`<${Rise} key=${i} delay=${26 + i * 12} style=${{ textAlign: "center", padding: "0 8px" }}>
+            <${Tag} color=${phaseCol(st, i)}>${st.when}<//>
+            <div style=${{ marginTop: 8, font: `600 25px/1.2 ${HEAD}`, color: INK }}>${st.title}</div>
+            <div style=${{ marginTop: 6, font: `400 19px/1.38 ${BODY}`, color: MUTED }}>${st.text}</div>
+          <//>`)}
+        </div>
+      </div>
+      ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 170, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
+        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${90 + i * 8} style=${{ ...card, padding: "18px 26px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
+          <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
+          <div style=${{ marginTop: 10, font: `600 24px/1.25 ${HEAD}`, color: INK }}>${c.title}</div>
+          <div style=${{ marginTop: 6, font: `400 19px/1.4 ${BODY}`, color: MUTED }}>${c.text}</div>
+        <//>`)}
+      </div>`}
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+// ---------- 8d. kanal catismasi: iki sema yan yana (tek distributor vs EROP) ----------
+// panels: [{ title, good, mid, tier: [...] (ara katman, istege bagli), partners: [...], lost: "...", caption }], example: { tag, text }, punch
+function EChannel({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const panels = s.panels || [];
+  const draw = (d) => interpolate(frame - d, [0, 22], [0, 1], ease);
+  return html`<${Frame} dark=${false}>
+    <div style=${pad}>
+      <${Head} s=${s} />
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, display: "grid", gridTemplateColumns: `repeat(${panels.length}, 1fr)`, gap: 32 }}>
+        ${panels.map((pn, k) => {
+          const col = pn.good ? GREEN : RED;
+          const d = 12 + k * 30;
+          const parts = pn.partners || [];
+          const W = 760;
+          return html`<${Rise} key=${k} delay=${d} style=${{ ...card, padding: "22px 28px 20px", borderTop: `5px solid ${col}`, display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <${Tag} color=${col} style=${{ alignSelf: "flex-start" }}>${pn.title}<//>
+            <div style=${{ marginTop: 14, padding: "10px 30px", borderRadius: 12, background: NAVY, color: "#fff", font: `600 24px/1.1 ${HEAD}` }}>Signify</div>
+            <div style=${{ width: 2, height: 16, background: MUTED, transform: `scaleY(${draw(d + 8)})`, transformOrigin: "top" }} />
+            ${typeof pn.mid === "object"
+              ? html`<div style=${{ padding: "12px 34px 13px", borderRadius: 14, background: pn.good ? BLUE : "#fff", border: pn.good ? "none" : `2px solid ${RED}`,
+                  color: pn.good ? "#fff" : RED, textAlign: "center", maxWidth: 640, boxShadow: pn.good ? "0 10px 24px rgba(20,50,255,.22)" : "none", opacity: draw(d + 12) }}>
+                  <div style=${{ font: `600 26px/1.1 ${HEAD}` }}>${pn.mid.name}</div>
+                  ${(pn.mid.lines || []).map((l, i) => html`<div key=${i} style=${{ marginTop: i ? 2 : 6, font: `400 16px/1.35 ${BODY}`, opacity: 0.88 }}>${l}</div>`)}
+                </div>`
+              : html`<div style=${{ padding: "10px 24px", borderRadius: 12, background: pn.good ? BLUE : "#fff", border: pn.good ? "none" : `2px solid ${RED}`,
+                  color: pn.good ? "#fff" : RED, font: `600 22px/1.2 ${HEAD}`, textAlign: "center", opacity: draw(d + 12) }}>${pn.mid}</div>`}
+            ${pn.tier && (() => {
+              const tw = W / pn.tier.length;
+              const bx = (i) => tw * (i + 0.5);
+              const px = (i) => (W / parts.length) * (i + 0.5);
+              const q = draw(d + 18);
+              return html`<svg width=${W} height="16" style=${{ overflow: "visible" }}>
+                  ${pn.tier.map((t, i) => html`<line key=${i} x1=${W / 2} y1="0" x2=${bx(i)} y2="16" stroke=${BLUE} strokeWidth="2" opacity=${q} />`)}
+                </svg>
+                <div style=${{ width: W, display: "grid", gridTemplateColumns: `repeat(${pn.tier.length}, 1fr)`, gap: 12, opacity: q }}>
+                  ${pn.tier.map((t, i) => html`<div key=${i} style=${{ padding: "8px 6px", borderRadius: 10, background: "rgba(30,203,208,.14)", color: "#0B7F83", font: `600 18px/1.15 ${HEAD}`, textAlign: "center" }}>${t}</div>`)}
+                </div>
+                <svg width=${W} height="26" style=${{ overflow: "visible" }}>
+                  ${pn.tier.map((t, i) => html`<line key=${"v" + i} x1=${bx(i)} y1="0" x2=${bx(i)} y2="12" stroke=${GREEN} strokeWidth="2" opacity=${draw(d + 24)} />`)}
+                  <line x1=${px(0)} y1="12" x2=${px(parts.length - 1)} y2="12" stroke=${GREEN} strokeWidth="2" opacity=${draw(d + 24)} />
+                  ${parts.map((p, i) => html`<line key=${"p" + i} x1=${px(i)} y1="12" x2=${px(i)} y2="26" stroke=${GREEN} strokeWidth="2" opacity=${draw(d + 28)} />`)}
+                </svg>`;
+            })()}
+            ${!pn.tier && html`<svg width=${W} height="40" style=${{ overflow: "visible" }}>
+              ${parts.map((p, i) => {
+                const x = (W / parts.length) * (i + 0.5);
+                const len = Math.hypot(x - W / 2, 40);
+                return html`<line key=${i} x1=${W / 2} y1="0" x2=${x} y2="40" stroke=${pn.good ? GREEN : RED} strokeWidth="2" strokeDasharray=${pn.good ? len : "6 6"}
+                  strokeDashoffset=${pn.good ? len * (1 - draw(d + 20 + i * 3)) : 0} opacity=${pn.good ? 1 : draw(d + 20 + i * 3)} />`;
+              })}
+            </svg>`}
+            <div style=${{ width: W, display: "grid", gridTemplateColumns: `repeat(${parts.length}, 1fr)`, gap: 10 }}>
+              ${parts.map((p, i) => html`<div key=${i} style=${{ opacity: draw(d + 26 + i * 4), display: "flex", justifyContent: "center", alignItems: "baseline", gap: 8, padding: "9px 4px", borderRadius: 10,
+                background: pn.good ? "rgba(0,168,107,.08)" : "rgba(214,69,69,.06)", border: `1px solid ${pn.good ? "rgba(0,168,107,.35)" : "rgba(214,69,69,.35)"}` }}>
+                <span style=${{ font: `600 18px/1 ${HEAD}`, color: pn.good ? GREEN : RED }}>${pn.good ? "✓" : "✕"}</span>
+                <span style=${{ font: `500 17px/1.2 ${BODY}`, color: INK }}>${p}</span>
+              </div>`)}
+            </div>
+            ${pn.lost && html`<div style=${{ marginTop: 10, font: `600 18px/1.3 ${BODY}`, color: col, opacity: draw(d + 50) }}>${pn.lost}</div>`}
+            ${pn.caption && html`<div style=${{ marginTop: 10, font: `400 20px/1.42 ${BODY}`, color: "#2E3440", textAlign: "center" }}>${pn.caption}</div>`}
+          <//>`;
+        })}
+      </div>
+      ${s.example && html`<${Rise} delay=${90} style=${{ position: "absolute", left: 0, right: 0, bottom: s.punch ? 96 : 0, display: "flex", gap: 16, alignItems: "baseline",
+        padding: "12px 22px", borderRadius: 12, background: "rgba(217,140,31,.08)", borderLeft: `4px solid ${AMBER}`, font: `400 20px/1.42 ${BODY}`, color: INK }}>
+        <span style=${{ font: `600 15px/1 ${BODY}`, letterSpacing: "0.14em", textTransform: "uppercase", color: AMBER, flexShrink: 0 }}>${s.example.tag}</span>
+        <span>${s.example.text}</span>
+      <//>`}
+      ${s.punch && html`<${Rise} delay=${110} style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 80, borderRadius: 14, background: NAVY, color: "#fff",
+        display: "flex", alignItems: "center", padding: "0 34px", font: `600 27px/1.3 ${HEAD}` }}>${s.punch}<//>`}
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 // ---------- 9. ticari motor: Trade ve Project yan yana dongu ----------
 // columns: [{ title, tag, steps: [...], text, risk: { title, points: [...] }, punch }]
 function EEngine({ s, meta, index, total }) {
@@ -579,5 +719,5 @@ function EClosing({ s, meta }) {
 
 registerSlideTypes({
   "e-cover": ECover, "e-summary": ESummary, "e-table": ETable, "e-gap": EGap, "e-bridge": EBridge, "e-cards": ECards,
-  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
+  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
 });
