@@ -60,6 +60,13 @@ export const THEMES = {
     kickerDark: C.green, kickerLight: "#00995A", accentLight: "#00995A", glow: "0,228,135",
     bar: "linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", text: "ignite",
   },
+  // night: sinematik, tam ekran gorsel sunum (night.js)
+  night: {
+    id: "night", darkBg: "#05070A", lightBg: "#05070A",
+    gradDark: lg(C.green, C.teal), gradLight: lg(C.green, C.teal),
+    kickerDark: C.green, kickerLight: C.green, accentLight: C.green, glow: "0,228,135",
+    bar: "linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.08))", text: "rise",
+  },
   // executive: yonetim kurulu sunumlari icin sade, kurumsal gorunum (acik zemin, lacivert kapak, sakin hareket)
   executive: {
     id: "executive", darkBg: "#0A1633", lightBg: "#F6F7F9",

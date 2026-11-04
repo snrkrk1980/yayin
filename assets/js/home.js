@@ -103,7 +103,7 @@ let stage = null;
 function present(folder) {
   stage = document.createElement("div");
   stage.className = "stage";
-  stage.innerHTML = `<iframe src="${esc(folder)}" allow="fullscreen" title="Presentation"></iframe>
+  stage.innerHTML = `<iframe src="${esc(folder)}" allow="fullscreen; autoplay" title="Presentation"></iframe>
     <button class="stage__close" aria-label="Close presentation">×</button>`;
   document.body.appendChild(stage);
   const iframe = stage.querySelector("iframe");
