@@ -1,7 +1,7 @@
 // "executive" slayt tipleri: yonetim kurulu (Leadership Team) sunumlari icin sade, kurumsal tasarim.
 // Acik zemin, net tablolar, sakin animasyon. Kapak ve kapanis lacivert.
 // Slayt metinleri ve rakamlar bu dosyada DEGIL, sunumun index.html dosyasindaki deck-data blogunda durur.
-// Tipler: e-cover, e-summary, e-table, e-gap, e-bridge, e-cards, e-model, e-compare, e-shift, e-decline, e-channel, e-stats, e-engine, e-timeline, e-ask, e-closing
+// Tipler: e-cover, e-summary, e-table, e-gap, e-bridge, e-cards, e-model, e-compare, e-shift, e-decline, e-channel, e-stats, e-duty, e-engine, e-timeline, e-ask, e-closing
 import React from "react";
 import { useCurrentFrame, interpolate, Easing } from "remotion";
 import {
@@ -642,6 +642,72 @@ function EStats({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 8f. kanal bazinda gumruk karsilastirmasi: her kanalda A ve B yigili cubuk ----------
+// legend: [{ label, color }], labels: ["A ...", "B ..."], max,
+// channels: [{ name, sub, duty, a: [[value, color], ...], b: [...], save: { value, pct, year } | null, same }]
+function DutyBar({ segs, delay, max, H, total, accent }) {
+  const frame = useCurrentFrame();
+  const p = interpolate(frame - delay, [0, 34], [0, 1], ease);
+  const sum = segs.reduce((a, s) => a + s[0], 0);
+  return html`<div style=${{ width: 92, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: H + 46 }}>
+    <div style=${{ font: `600 27px/1 ${HEAD}`, color: accent ? GREEN : INK, marginBottom: 10, opacity: p, fontVariantNumeric: "tabular-nums" }}>${fmt(total ?? sum, 1)}</div>
+    <div style=${{ width: "100%", display: "flex", flexDirection: "column-reverse", borderRadius: "8px 8px 0 0", overflow: "hidden" }}>
+      ${segs.map(([v, c], k) => {
+        const h = (v / max) * H * p;
+        return html`<div key=${k} style=${{ height: h, background: colorOf(c), display: "flex", alignItems: "center", justifyContent: "center",
+          font: `600 17px/1 ${BODY}`, color: "#fff", borderTop: k ? "1px solid rgba(255,255,255,.55)" : "none" }}>${h >= 24 ? fmt(v, 0) : ""}</div>`;
+      })}
+    </div>
+  </div>`;
+}
+function EDuty({ s, meta, index, total }) {
+  const ch = s.channels || [];
+  const max = s.max || 200;
+  const H = s.barH || 300;
+  const labels = s.labels || ["A", "B"];
+  return html`<${Frame} dark=${false}>
+    <div style=${pad}>
+      <${Head} s=${s} max=${1700} />
+      <${Rise} delay=${14} style=${{ position: "absolute", right: 0, top: s.sub ? 214 : 164, display: "flex", gap: 22, font: `500 17px/1 ${BODY}`, color: MUTED }}>
+        ${(s.legend || []).map((l, i) => html`<span key=${i} style=${{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style=${{ width: 16, height: 16, borderRadius: 4, background: colorOf(l.color) }} />${l.label}</span>`)}
+      <//>
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 262 : 212, bottom: s.note ? 70 : 0, display: "grid", gridTemplateColumns: `repeat(${ch.length}, 1fr)`, gap: 20 }}>
+        ${ch.map((c, i) => {
+          const d0 = 20 + i * 10;
+          const hasDuty = !!c.save;
+          return html`<${Rise} key=${i} delay=${d0} style=${{ ...card, padding: "20px 20px 18px", display: "flex", flexDirection: "column",
+              border: hasDuty ? `2px solid ${c.save.value >= 5 ? BLUE : LINE}` : card.border }}>
+            <div style=${{ font: `600 24px/1.15 ${HEAD}`, color: INK }}>${c.name}</div>
+            <div style=${{ marginTop: 4, font: `400 17px/1.3 ${BODY}`, color: MUTED, minHeight: 40 }}>${c.sub}</div>
+            <div style=${{ marginTop: 8, alignSelf: "flex-start", padding: "6px 12px", borderRadius: 6, font: `600 16px/1 ${BODY}`, letterSpacing: "0.06em",
+              background: c.dutyRate > 0 ? "rgba(214,69,69,.09)" : "rgba(91,97,110,.09)", color: c.dutyRate > 0 ? RED : MUTED }}>${c.duty}</div>
+            <div style=${{ flex: 1, display: "flex", justifyContent: "space-around", alignItems: "flex-end", borderBottom: `2px solid ${INK}`, marginTop: 6 }}>
+              <${DutyBar} segs=${c.a} delay=${d0 + 10} max=${max} H=${H} />
+              <${DutyBar} segs=${c.b} delay=${d0 + 22} max=${max} H=${H} accent=${hasDuty} />
+            </div>
+            <div style=${{ display: "flex", justifyContent: "space-around", marginTop: 8, font: `500 15px/1.2 ${BODY}`, color: MUTED, textAlign: "center" }}>
+              <span style=${{ width: 140 }}>${labels[0]}</span><span style=${{ width: 140, color: BLUE, fontWeight: 600 }}>${labels[1]}</span>
+            </div>
+            <${Rise} delay=${d0 + 50} y=${8} style=${{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${LINE}`, minHeight: 78 }}>
+              ${hasDuty
+                ? html`<div style=${{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                    <span style=${{ font: `600 34px/1 ${HEAD}`, color: GREEN }}>−${fmt(c.save.value, 1)}</span>
+                    <span style=${{ font: `500 17px/1.2 ${BODY}`, color: INK }}>${c.save.pct}</span>
+                  </div>
+                  <div style=${{ marginTop: 6, font: `400 17px/1.3 ${BODY}`, color: MUTED }}>${c.save.year}</div>`
+                : html`<div style=${{ font: `600 22px/1.2 ${HEAD}`, color: MUTED }}>A = B</div>
+                  <div style=${{ marginTop: 6, font: `400 17px/1.3 ${BODY}`, color: MUTED }}>${c.same || "No duty, nothing to save"}</div>`}
+            <//>
+          <//>`;
+        })}
+      </div>
+      <${Note} s=${s} delay=${110} />
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 // ---------- 9. ticari motor: Trade ve Project yan yana dongu ----------
 // columns: [{ title, tag, steps: [...], text, risk: { title, points: [...] }, punch }]
 function EEngine({ s, meta, index, total }) {
@@ -766,5 +832,5 @@ function EClosing({ s, meta }) {
 
 registerSlideTypes({
   "e-cover": ECover, "e-summary": ESummary, "e-table": ETable, "e-gap": EGap, "e-bridge": EBridge, "e-cards": ECards,
-  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-stats": EStats, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
+  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-stats": EStats, "e-duty": EDuty, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
 });
