@@ -176,7 +176,7 @@ function EGap({ s, meta, index, total }) {
               const p = interpolate(frame - 20 - i * 12, [0, 40], [0, 1], ease);
               const h = (b.value / max) * H * p;
               const col = colorOf(b.color);
-              return html`<div key=${i} style=${{ width: 190, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
+              return html`<div key=${i} style=${{ width: bars.length > 2 ? 165 : 190, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
                 <div style=${{ font: `600 46px/1 ${HEAD}`, color: col, marginBottom: 12, opacity: p }}>${fmt(b.value * p, 1)}%</div>
                 <div style=${{ font: `400 19px/1 ${BODY}`, color: MUTED, marginBottom: 14, opacity: p }}>${b.amount || ""}</div>
                 <div style=${{ width: "100%", height: h, background: b.dashed ? "transparent" : col, border: b.dashed ? `3px dashed ${col}` : "none", borderBottom: "none", borderRadius: "8px 8px 0 0" }} />
@@ -190,7 +190,12 @@ function EGap({ s, meta, index, total }) {
         <div style=${{ display: "flex", flexDirection: "column", gap: 22 }}>
           ${s.optionsTitle && html`<${Rise} delay=${40} style=${{ font: `600 26px/1.3 ${HEAD}`, color: INK }}>${s.optionsTitle}<//>`}
           ${(s.options || []).map((o, i) => html`<${Rise} key=${i} delay=${50 + i * 10} style=${{ ...card, flex: 1, padding: "26px 32px", display: "flex", gap: 30, alignItems: "center" }}>
-            <${Val} v=${o.value} delay=${56 + i * 10} style=${{ font: `600 60px/1 ${HEAD}`, letterSpacing: "-0.03em", color: RED, minWidth: 210 }} />
+            ${o.values
+              ? html`<div style=${{ display: "flex", gap: 22, flexShrink: 0 }}>${o.values.map((v, j) => html`<div key=${j} style=${{ minWidth: 150 }}>
+                  <div style=${{ font: `600 15px/1.2 ${BODY}`, letterSpacing: "0.08em", textTransform: "uppercase", color: v.color ? colorOf(v.color) : MUTED, marginBottom: 6 }}>${v.tag}</div>
+                  <${Val} v=${v.value} delay=${56 + i * 10 + j * 4} style=${{ font: `600 48px/1 ${HEAD}`, letterSpacing: "-0.03em", color: RED }} />
+                </div>`)}</div>`
+              : html`<${Val} v=${o.value} delay=${56 + i * 10} style=${{ font: `600 60px/1 ${HEAD}`, letterSpacing: "-0.03em", color: RED, minWidth: 210 }} />`}
             <div>
               <div style=${{ font: `600 25px/1.25 ${HEAD}`, color: INK }}>${o.label}</div>
               <div style=${{ marginTop: 8, font: `400 20px/1.42 ${BODY}`, color: MUTED }}>${o.text}</div>
