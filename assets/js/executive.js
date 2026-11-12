@@ -494,7 +494,9 @@ function EDecline({ s, meta, index, total }) {
     <div style=${pad}>
       <${Head} s=${s} />
       <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205 }}>
-        ${s.chartLabel && html`<${Rise} delay=${12}><${Tag} color=${MUTED}>${s.chartLabel}<//><//>`}
+        ${s.chartLabel && html`<${Rise} delay=${12} style=${{ display: "flex", alignItems: "center", gap: 30, flexWrap: "wrap" }}><${Tag} color=${MUTED}>${s.chartLabel}<//>
+          ${s.legend && series.filter((x) => x.label).map((x, k) => html`<span key=${k} style=${{ display: "flex", alignItems: "center", gap: 10, font: `600 19px/1.2 ${BODY}`, color: x.col }}>
+            <span style=${{ width: 30, height: 5, borderRadius: 3, background: x.col }} />${x.label}</span>`)}<//>`}
         <div style=${{ position: "relative", height: H, marginTop: 14 }}>
           <svg viewBox=${`0 0 1000 ${H}`} preserveAspectRatio="none" style=${{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
             <defs>
@@ -510,7 +512,7 @@ function EDecline({ s, meta, index, total }) {
           </svg>
           ${series.map((x, k) => x.pts.map((q, i) => html`<div key=${k + "-" + i} style=${{ position: "absolute", left: `${((i + 0.5) * 100) / n}%`, top: q[1] - 9, width: 18, height: 18, marginLeft: -9, borderRadius: "50%",
             background: "#fff", border: `4px solid ${dotCol(x, i)}`, opacity: interpolate(frame - 24 - i * 13, [0, 10], [0, 1], ease) }} />`))}
-          ${series.filter((x) => x.label).map((x, k) => html`<div key=${"l" + k} style=${{ position: "absolute", right: 0, top: x.pts[x.pts.length - 1][1] + (x.labelBelow ? 16 : -40),
+          ${!s.legend && series.filter((x) => x.label).map((x, k) => html`<div key=${"l" + k} style=${{ position: "absolute", right: 0, top: x.pts[x.pts.length - 1][1] + (x.labelBelow ? 16 : -40),
             font: `600 20px/1.2 ${BODY}`, color: x.col, whiteSpace: "nowrap", opacity: interpolate(frame - 90, [0, 14], [0, 1], ease) }}>${x.label}</div>`)}
         </div>
         <div style=${{ marginTop: 18, display: "grid", gridTemplateColumns: `repeat(${n}, 1fr)`, gap: 20 }}>
@@ -713,6 +715,61 @@ function EDuty({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 8g. fiyat zinciri: bugun vs indirect, iki buyuk yigili cubuk + aciklama ----------
+// max, barH, bars: [{ label, sub, segs: [{ v, color, label }], color }], delta: { value, text }, steps: [{ tag, color, text }], outcomes: [{ text }]
+function EPrice({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const bars = s.bars || [];
+  const max = s.max || 300;
+  const H = s.barH || 420;
+  return html`<${Frame} dark=${false}>
+    <div style=${pad}>
+      <${Head} s=${s} />
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 262 : 212, bottom: s.note ? 70 : 0, display: "grid", gridTemplateColumns: "840px 1fr", gap: 50 }}>
+        <${Rise} delay=${12} style=${{ ...card, padding: "26px 40px 20px", display: "flex", flexDirection: "column" }}>
+          <div style=${{ flex: 1, display: "flex", justifyContent: "space-around", alignItems: "flex-end", borderBottom: `2px solid ${INK}`, position: "relative" }}>
+            ${bars.map((b, i) => {
+              const p = interpolate(frame - 20 - i * 16, [0, 40], [0, 1], ease);
+              const sum = b.segs.reduce((a, g) => a + g.v, 0);
+              return html`<div key=${i} style=${{ width: 250, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div style=${{ font: `600 46px/1 ${HEAD}`, color: colorOf(b.color || "navy"), marginBottom: 12, opacity: p, fontVariantNumeric: "tabular-nums" }}>${fmt(sum * p, 0)}</div>
+                <div style=${{ width: "100%", display: "flex", flexDirection: "column-reverse", borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
+                  ${b.segs.map((g, k) => {
+                    const h = (g.v / max) * H * p;
+                    return html`<div key=${k} style=${{ height: h, background: colorOf(g.color), color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                      borderTop: k ? "2px solid rgba(255,255,255,.7)" : "none", textAlign: "center", overflow: "hidden" }}>
+                      ${h > 54 && html`<div style=${{ font: `600 26px/1 ${HEAD}` }}>${fmt(g.v, 0)}</div><div style=${{ marginTop: 4, font: `500 16px/1.2 ${BODY}`, opacity: 0.9 }}>${g.label}</div>`}
+                    </div>`;
+                  })}
+                </div>
+              </div>`;
+            })}
+          </div>
+          <div style=${{ display: "flex", justifyContent: "space-around", marginTop: 12 }}>
+            ${bars.map((b, i) => html`<div key=${i} style=${{ width: 300, textAlign: "center" }}>
+              <div style=${{ font: `600 22px/1.2 ${HEAD}`, color: colorOf(b.color || "navy") }}>${b.label}</div>
+              <div style=${{ marginTop: 4, font: `400 17px/1.3 ${BODY}`, color: MUTED }}>${b.sub}</div>
+            </div>`)}
+          </div>
+        <//>
+        <div style=${{ display: "flex", flexDirection: "column", gap: 18 }}>
+          ${s.delta && html`<${Rise} delay=${60} style=${{ ...card, padding: "22px 30px", borderLeft: `6px solid ${RED}`, display: "flex", alignItems: "center", gap: 26 }}>
+            <${Val} v=${s.delta.value} delay=${66} style=${{ font: `600 64px/1 ${HEAD}`, letterSpacing: "-0.03em", color: RED, flexShrink: 0 }} />
+            <div style=${{ font: `500 21px/1.4 ${BODY}`, color: INK }}>${s.delta.text}</div>
+          <//>`}
+          ${(s.steps || []).map((st, i) => html`<${Rise} key=${i} delay=${40 + i * 8} style=${{ ...card, padding: "18px 26px" }}>
+            <${Tag} color=${colorOf(st.color || "navy")}>${st.tag}<//>
+            <div style=${{ marginTop: 8, font: `400 20px/1.42 ${BODY}`, color: INK }}>${st.text}</div>
+          <//>`)}
+          ${s.outcome && html`<${Rise} delay=${84} style=${{ padding: "18px 26px", borderRadius: 12, background: NAVY, color: "#fff", font: `500 21px/1.42 ${BODY}` }}>${s.outcome}<//>`}
+        </div>
+      </div>
+      <${Note} s=${s} delay=${90} />
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 // ---------- 9. ticari motor: Trade ve Project yan yana dongu ----------
 // columns: [{ title, tag, steps: [...], text, risk: { title, points: [...] }, punch }]
 function EEngine({ s, meta, index, total }) {
@@ -837,5 +894,5 @@ function EClosing({ s, meta }) {
 
 registerSlideTypes({
   "e-cover": ECover, "e-summary": ESummary, "e-table": ETable, "e-gap": EGap, "e-bridge": EBridge, "e-cards": ECards,
-  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-stats": EStats, "e-duty": EDuty, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
+  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-stats": EStats, "e-duty": EDuty, "e-price": EPrice, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
 });
