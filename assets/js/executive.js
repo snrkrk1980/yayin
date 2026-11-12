@@ -824,7 +824,7 @@ function ETimeline({ s, meta, index, total }) {
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
-      <div style=${{ position: "absolute", left: 0, right: 0, top: (s.sub ? 260 : 215) + (big ? 90 : 0) }}>
+      <div style=${{ position: "absolute", left: 0, right: 0, top: (s.sub ? 260 : 215) + (big ? 90 : 0) - (s.entries ? 28 : 0) }}>
         <div style=${{ position: "relative", height: 4, background: LINE, borderRadius: 2, margin: "26px 0 0" }}>
           <div style=${{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${line * 100}%`, background: BLUE, borderRadius: 2 }} />
         </div>
@@ -834,20 +834,25 @@ function ETimeline({ s, meta, index, total }) {
             return html`<${Rise} key=${i} delay=${d} style=${{ position: "relative", paddingTop: 34 }}>
               <div style=${{ position: "absolute", top: -14, left: 0, width: 24, height: 24, borderRadius: "50%", background: "#fff", border: `5px solid ${BLUE}` }} />
               <${Tag} color=${BLUE}>${st.when}<//>
-              <div style=${{ marginTop: 10, font: `600 ${big ? 34 : 28}px/1.25 ${HEAD}`, color: INK }}>${st.title}</div>
-              <div style=${{ marginTop: 8, font: `400 ${big ? 24 : 21}px/1.42 ${BODY}`, color: MUTED }}>${st.text}</div>
+              <div style=${{ marginTop: s.entries ? 6 : 10, font: `600 ${big ? 34 : s.entries ? 24 : 28}px/1.25 ${HEAD}`, color: INK }}>${st.title}</div>
+              <div style=${{ marginTop: s.entries ? 4 : 8, font: `400 ${big ? 24 : s.entries ? 18 : 21}px/1.38 ${BODY}`, color: MUTED }}>${st.text}</div>
             <//>`;
           })}
         </div>
       </div>
       <${Note} s=${s} delay=${70} />
-      ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 250, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
-        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${70 + i * 8} style=${{ ...card, padding: "22px 28px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
-          <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
-          <div style=${{ marginTop: 12, font: `600 27px/1.25 ${HEAD}`, color: INK }}>${c.title}</div>
-          <div style=${{ marginTop: 10, font: `400 21px/1.42 ${BODY}`, color: MUTED }}>${c.text}</div>
-        <//>`)}
-      </div>`}
+      ${(() => {
+        const rows = s.entries ? [s.entries, cards] : [cards];
+        const two = rows.length > 1;
+        const h = two ? 138 : 250;
+        return rows.map((row, r) => row.length > 0 && html`<div key=${r} style=${{ position: "absolute", left: 0, right: 0, bottom: two && r === 0 ? h + 14 : 0, height: h, display: "grid", gridTemplateColumns: `repeat(${row.length}, 1fr)`, gap: 24 }}>
+          ${row.map((c, i) => html`<${Rise} key=${i} delay=${70 + r * 24 + i * 8} style=${{ ...card, padding: two ? "16px 24px" : "22px 28px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
+            <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
+            <div style=${{ marginTop: two ? 8 : 12, font: `600 ${two ? 23 : 27}px/1.25 ${HEAD}`, color: INK }}>${c.title}</div>
+            <div style=${{ marginTop: two ? 6 : 10, font: `400 ${two ? 18 : 21}px/1.4 ${BODY}`, color: MUTED }}>${c.text}</div>
+          <//>`)}
+        </div>`);
+      })()}
     </div>
     <${Footer} index=${index} total=${total} title=${meta.title} />
   <//>`;
