@@ -731,14 +731,14 @@ function EPrice({ s, meta, index, total }) {
             ${bars.map((b, i) => {
               const p = interpolate(frame - 20 - i * 16, [0, 40], [0, 1], ease);
               const sum = b.segs.reduce((a, g) => a + g.v, 0);
-              return html`<div key=${i} style=${{ width: 250, display: "flex", flexDirection: "column", alignItems: "center" }}>
+              return html`<div key=${i} style=${{ width: bars.length > 2 ? 190 : 250, display: "flex", flexDirection: "column", alignItems: "center" }}>
                 <div style=${{ font: `600 46px/1 ${HEAD}`, color: colorOf(b.color || "navy"), marginBottom: 12, opacity: p, fontVariantNumeric: "tabular-nums" }}>${fmt(sum * p, 0)}</div>
                 <div style=${{ width: "100%", display: "flex", flexDirection: "column-reverse", borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
                   ${b.segs.map((g, k) => {
                     const h = (g.v / max) * H * p;
                     return html`<div key=${k} style=${{ height: h, background: colorOf(g.color), color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                       borderTop: k ? "2px solid rgba(255,255,255,.7)" : "none", textAlign: "center", overflow: "hidden" }}>
-                      ${h > 54 && html`<div style=${{ font: `600 26px/1 ${HEAD}` }}>${fmt(g.v, 0)}</div><div style=${{ marginTop: 4, font: `500 16px/1.2 ${BODY}`, opacity: 0.9 }}>${g.label}</div>`}
+                      ${h > 54 ? html`<div style=${{ font: `600 26px/1 ${HEAD}` }}>${fmt(g.v, g.d || 0)}</div><div style=${{ marginTop: 4, font: `500 16px/1.2 ${BODY}`, opacity: 0.9 }}>${g.label}</div>` : h > 24 ? html`<div style=${{ font: `600 20px/1 ${HEAD}` }}>${fmt(g.v, g.d || 0)}</div>` : ""}
                     </div>`;
                   })}
                 </div>
@@ -746,15 +746,18 @@ function EPrice({ s, meta, index, total }) {
             })}
           </div>
           <div style=${{ display: "flex", justifyContent: "space-around", marginTop: 12 }}>
-            ${bars.map((b, i) => html`<div key=${i} style=${{ width: 300, textAlign: "center" }}>
+            ${bars.map((b, i) => html`<div key=${i} style=${{ width: bars.length > 2 ? 230 : 300, textAlign: "center" }}>
               <div style=${{ font: `600 22px/1.2 ${HEAD}`, color: colorOf(b.color || "navy") }}>${b.label}</div>
               <div style=${{ marginTop: 4, font: `400 17px/1.3 ${BODY}`, color: MUTED }}>${b.sub}</div>
             </div>`)}
           </div>
+          ${s.legend && html`<div style=${{ display: "flex", justifyContent: "center", gap: 22, marginTop: 14, font: `500 16px/1 ${BODY}`, color: MUTED }}>
+            ${s.legend.map((l, i) => html`<span key=${i} style=${{ display: "flex", alignItems: "center", gap: 8 }}><span style=${{ width: 14, height: 14, borderRadius: 3, background: colorOf(l.color) }} />${l.label}</span>`)}
+          </div>`}
         <//>
         <div style=${{ display: "flex", flexDirection: "column", gap: 18 }}>
-          ${s.delta && html`<${Rise} delay=${60} style=${{ ...card, padding: "22px 30px", borderLeft: `6px solid ${RED}`, display: "flex", alignItems: "center", gap: 26 }}>
-            <${Val} v=${s.delta.value} delay=${66} style=${{ font: `600 64px/1 ${HEAD}`, letterSpacing: "-0.03em", color: RED, flexShrink: 0 }} />
+          ${s.delta && html`<${Rise} delay=${60} style=${{ ...card, padding: "22px 30px", borderLeft: `6px solid ${colorOf(s.delta.color || "red")}`, display: "flex", alignItems: "center", gap: 26 }}>
+            <${Val} v=${s.delta.value} delay=${66} style=${{ font: `600 64px/1 ${HEAD}`, letterSpacing: "-0.03em", color: colorOf(s.delta.color || "red"), flexShrink: 0 }} />
             <div style=${{ font: `500 21px/1.4 ${BODY}`, color: INK }}>${s.delta.text}</div>
           <//>`}
           ${(s.steps || []).map((st, i) => html`<${Rise} key=${i} delay=${40 + i * 8} style=${{ ...card, padding: "18px 26px" }}>
