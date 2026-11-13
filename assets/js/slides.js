@@ -71,7 +71,7 @@ export const THEMES = {
   executive: {
     id: "executive", darkBg: "#0A1633", lightBg: "#F6F7F9",
     gradDark: lg(C.green, C.teal), gradLight: lg(C.blue, "#3D5AFE"),
-    kickerDark: C.green, kickerLight: C.blue, accentLight: C.blue, glow: "20,50,255",
+    kickerDark: C.green, kickerLight: "#5B616E", accentLight: "#0E1116", glow: "20,50,255",
     bar: "linear-gradient(180deg, rgba(20,50,255,.9), rgba(20,50,255,.7))", text: "clean",
   },
 };

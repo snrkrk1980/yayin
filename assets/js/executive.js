@@ -54,9 +54,9 @@ function SectionBar({ sections, current }) {
   return html`<div style=${{ position: "absolute", left: 0, right: 0, top: -84, display: "flex", gap: 10 }}>
     ${sections.map((n, i) => html`<div key=${i} style=${{ flex: 1 }}>
       <div style=${{ height: 4, borderRadius: 2, background: LINE, overflow: "hidden" }}>
-        <div style=${{ height: "100%", width: i < ci ? "100%" : i === ci ? `${fill * 100}%` : "0%", background: i === ci ? BLUE : "#B9C2D3", borderRadius: 2 }} />
+        <div style=${{ height: "100%", width: i < ci ? "100%" : i === ci ? `${fill * 100}%` : "0%", background: i === ci ? INK : "#B9C2D3", borderRadius: 2 }} />
       </div>
-      <div style=${{ marginTop: 8, font: `${i === ci ? 600 : 500} 14px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: i === ci ? BLUE : i < ci ? MUTED : "#A3A9B5" }}>${n}</div>
+      <div style=${{ marginTop: 8, font: `${i === ci ? 600 : 500} 14px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: i === ci ? INK : i < ci ? MUTED : "#A3A9B5" }}>${n}</div>
     </div>`)}
   </div>`;
 }
@@ -74,13 +74,13 @@ function Head({ s, size = 58, max = 1500 }) {
   return html`<div>
     <${Drift} />
     <${SectionBar} sections=${s._sections} current=${s.section} />
-    <${Kicker} text=${s.kicker} delay=${2} />
+    <${Kicker} text=${s.kicker} delay=${2} color=${MUTED} />
     <${RiseText} text=${s.title} delay=${6} stagger=${1.5} gradientWords=${0}
       style=${{ marginTop: 22, font: `600 ${size}px/1.08 ${HEAD}`, letterSpacing: "-0.03em", maxWidth: max, color: INK }} />
     ${s.sub && html`<${Rise} delay=${16} style=${{ marginTop: 16, font: `400 25px/1.4 ${BODY}`, color: MUTED, maxWidth: max }}>${s.sub}<//>`}
   </div>`;
 }
-function Tag({ children, color = BLUE, style }) {
+function Tag({ children, color = INK, style }) {
   return html`<div style=${{ font: `600 17px/1.2 ${BODY}`, letterSpacing: "0.14em", textTransform: "uppercase", color, ...style }}>${children}</div>`;
 }
 function Note({ s, delay = 60 }) {
@@ -126,7 +126,7 @@ function ESummary({ s, meta, index, total }) {
       <div style=${{ position: "absolute", left: 0, right: 0, top: 190, bottom: 0, display: "grid", gridTemplateColumns: "1fr 560px", gap: 40 }}>
         <div style=${{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           ${(s.points || []).map((p, i) => html`<${Rise} key=${i} delay=${16 + i * 7} style=${{ display: "flex", gap: 26, paddingBottom: 18, borderBottom: i < s.points.length - 1 ? `1px solid ${LINE}` : "none" }}>
-            <div style=${{ font: `600 34px/1 ${HEAD}`, color: BLUE, width: 48, flexShrink: 0 }}>${String(i + 1).padStart(2, "0")}</div>
+            <div style=${{ font: `600 34px/1 ${HEAD}`, color: INK, width: 48, flexShrink: 0 }}>${String(i + 1).padStart(2, "0")}</div>
             <div>
               <div style=${{ font: `600 27px/1.25 ${HEAD}`, color: INK }}>${p.title}</div>
               <div style=${{ marginTop: 6, font: `400 21px/1.42 ${BODY}`, color: MUTED }}>${rich(p.text)}</div>
@@ -170,14 +170,14 @@ function ETable({ s, meta, index, total }) {
           </div>
           ${rows.map((r, i) => html`<${Rise} key=${i} delay=${20 + i * 4} y=${10} style=${{ display: "grid", gridTemplateColumns: `1.5fr repeat(${cols.length}, 1fr)`, alignItems: "center",
               padding: r.hl ? "14px 14px" : "11px 0", margin: r.hl ? "6px -14px" : 0, borderRadius: r.hl ? 10 : 0,
-              background: r.hl ? "rgba(20,50,255,.07)" : "transparent", borderBottom: r.hl ? "none" : `1px solid ${LINE}` }}>
+              background: r.hl ? "rgba(14,17,22,.05)" : "transparent", borderBottom: r.hl ? "none" : `1px solid ${LINE}` }}>
             <div style=${{ font: `${r.bold || r.hl ? 600 : 400} ${r.sub ? 19 : 23}px/1.2 ${r.bold || r.hl ? HEAD : BODY}`, color: r.sub ? MUTED : INK, paddingLeft: r.sub ? 22 : 0 }}>${r.label}</div>
             ${(r.values || []).map((v, j) => html`<div key=${j} style=${{ textAlign: "right", fontVariantNumeric: "tabular-nums",
-              font: `${r.bold || r.hl ? 600 : 400} ${r.sub ? 19 : 23}px/1.2 ${BODY}`, color: r.hl ? BLUE : r.sub ? MUTED : INK }}>${v}</div>`)}
+              font: `${r.bold || r.hl ? 600 : 400} ${r.sub ? 19 : 23}px/1.2 ${BODY}`, color: r.hl ? INK : r.sub ? MUTED : INK }}>${v}</div>`)}
           <//>`)}
         <//>
         ${hasSide && html`<div style=${{ display: "flex", flexDirection: "column", gap: 20 }}>
-          ${s.callouts.map((c, i) => html`<${Rise} key=${i} delay=${40 + i * 8} style=${{ ...card, flex: 1, padding: "22px 28px", borderLeft: `5px solid ${colorOf(c.color)}`, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          ${s.callouts.map((c, i) => html`<${Rise} key=${i} delay=${40 + i * 8} style=${{ ...card, flex: 1, padding: "22px 28px", borderLeft: `4px solid ${INK}`, display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <${Val} v=${c.value} delay=${46 + i * 8} style=${{ font: `600 46px/1 ${HEAD}`, letterSpacing: "-0.03em", color: colorOf(c.color) }} />
             <div style=${{ marginTop: 10, font: `400 20px/1.4 ${BODY}`, color: INK }}>${c.label}</div>
           <//>`)}
@@ -256,7 +256,7 @@ function EGap2({ s, meta, index, total }) {
         ${panels.map((pn, k) => {
           const col = colorOf(pn.color);
           const d0 = 12 + k * 22;
-          return html`<${Rise} key=${k} delay=${d0} style=${{ ...card, padding: "22px 32px", borderTop: `5px solid ${col}`, display: "flex", flexDirection: "column" }}>
+          return html`<${Rise} key=${k} delay=${d0} style=${{ ...card, padding: "22px 32px", borderTop: `4px solid ${INK}`, display: "flex", flexDirection: "column" }}>
             <div style=${{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 20 }}>
               <${Tag} color=${col}>${pn.tag}<//>
               <div style=${{ font: `400 17px/1.3 ${BODY}`, color: MUTED }}>${pn.caption}</div>
@@ -281,7 +281,7 @@ function EGap2({ s, meta, index, total }) {
               <div style=${{ flex: 1, display: "flex", flexDirection: "column", gap: 16, justifyContent: "center" }}>
                 <div style=${{ font: `600 18px/1.2 ${BODY}`, color: MUTED }}>${s.leversTitle || "To close it, the direct model needs:"}</div>
                 ${(pn.levers || []).map((lv, i) => html`<${Rise} key=${i} delay=${d0 + 30 + i * 8} style=${{ paddingTop: 12, borderTop: `1px solid ${LINE}` }}>
-                  <${Val} v=${lv.value} delay=${d0 + 34 + i * 8} style=${{ font: `600 48px/1 ${HEAD}`, letterSpacing: "-0.03em", color: col }} />
+                  <${Val} v=${lv.value} delay=${d0 + 34 + i * 8} style=${{ font: `600 48px/1 ${HEAD}`, letterSpacing: "-0.03em", color: lv.color ? colorOf(lv.color) : col }} />
                   <div style=${{ marginTop: 6, font: `600 20px/1.25 ${HEAD}`, color: INK }}>${lv.label}</div>
                   ${lv.text && html`<div style=${{ marginTop: 4, font: `400 17px/1.35 ${BODY}`, color: MUTED }}>${lv.text}</div>`}
                 <//>`)}
@@ -317,7 +317,7 @@ function Waterfall({ pnl, delay, max, width = 640 }) {
       ${pnl.floor && (() => {
         const q = interpolate(frame - delay - 70, [0, 25], [0, 1], ease);
         return html`<g opacity=${q}>
-          <line x1="0" x2=${W * q} y1=${y(pnl.floor.value)} y2=${y(pnl.floor.value)} stroke=${GREEN} strokeWidth="2.5" strokeDasharray="10 8" />
+          <line x1="0" x2=${W * q} y1=${y(pnl.floor.value)} y2=${y(pnl.floor.value)} stroke=${colorOf(pnl.floor.color || "green")} strokeWidth="2.5" strokeDasharray="10 8" />
         </g>`;
       })()}
       ${steps.map((st, i) => {
@@ -355,8 +355,8 @@ function EBridge({ s, meta, index, total }) {
             <div style=${{ font: `600 ${panels.length > 2 ? 24 : 28}px/1.2 ${HEAD}`, color: pn.color ? colorOf(pn.color) : pn.accent ? colorOf(pn.accentColor || "blue") : INK }}>${pn.title}</div>
             <div style=${{ font: `400 18px/1.2 ${BODY}`, color: MUTED }}>${pn.caption}</div>
           </div>
-          ${pn.floor && html`<div style=${{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, font: `600 17px/1 ${BODY}`, color: GREEN }}>
-            <span style=${{ width: 34, borderTop: `3px dashed ${GREEN}` }} />${pn.floor.label}
+          ${pn.floor && html`<div style=${{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, font: `600 17px/1 ${BODY}`, color: colorOf(pn.floor.color || "green") }}>
+            <span style=${{ width: 34, borderTop: `3px dashed ${colorOf(pn.floor.color || "green")}` }} />${pn.floor.label}
           </div>`}
           <div style=${{ marginTop: 56 }}><${Waterfall} pnl=${pn} delay=${20 + i * 30} max=${max} width=${panels.length > 2 ? 470 : 640} /></div>
         <//>`)}
@@ -410,7 +410,7 @@ function ECards({ s, meta, index, total }) {
         ${cards.map((c, i) => {
           const col = colorOf(c.color);
           const d = 14 + i * 7;
-          return html`<${Rise} key=${i} delay=${d} style=${{ ...card, padding: `${28 * z}px ${32 * z}px`, borderTop: `5px solid ${col}`, display: "flex", flexDirection: "column", justifyContent: noValues ? "center" : "flex-start" }}>
+          return html`<${Rise} key=${i} delay=${d} style=${{ ...card, padding: `${28 * z}px ${32 * z}px`, borderTop: `4px solid ${INK}`, display: "flex", flexDirection: "column", justifyContent: noValues ? "center" : "flex-start" }}>
             ${c.tag && html`<${Tag} color=${col}>${c.tag}<//>`}
             ${c.value != null && html`<${Val} v=${c.value} delay=${d + 6} style=${{ display: "block", marginTop: 16, font: `600 ${54 * z}px/1 ${HEAD}`, letterSpacing: "-0.03em", color: INK }} />`}
             ${c.label && html`<div style=${{ marginTop: 12, font: `600 ${24 * z}px/1.28 ${HEAD}`, color: INK }}>${c.label}</div>`}
@@ -655,7 +655,7 @@ function EDecline({ s, meta, index, total }) {
         </div>
       </div>
       ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 170, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
-        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${90 + i * 8} style=${{ ...card, padding: "18px 26px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
+        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${90 + i * 8} style=${{ ...card, padding: "18px 26px", borderLeft: `4px solid ${INK}` }}>
           <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
           <div style=${{ marginTop: 10, font: `600 24px/1.25 ${HEAD}`, color: INK }}>${c.title}</div>
           <div style=${{ marginTop: 6, font: `400 19px/1.4 ${BODY}`, color: MUTED }}>${c.text}</div>
@@ -681,7 +681,7 @@ function EChannel({ s, meta, index, total }) {
           const d = 12 + k * 30;
           const parts = pn.partners || [];
           const W = 760;
-          return html`<${Rise} key=${k} delay=${d} style=${{ ...card, padding: "22px 28px 20px", borderTop: `5px solid ${col}`, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          return html`<${Rise} key=${k} delay=${d} style=${{ ...card, padding: "22px 28px 20px", borderTop: `4px solid ${INK}`, display: "flex", flexDirection: "column", alignItems: "center" }}>
             <${Tag} color=${col} style=${{ alignSelf: "flex-start" }}>${pn.title}<//>
             <div style=${{ marginTop: 14, padding: "10px 30px", borderRadius: 12, background: NAVY, color: "#fff", font: `600 24px/1.1 ${HEAD}` }}>Signify</div>
             <div style=${{ width: 2, height: 16, background: MUTED, transform: `scaleY(${draw(d + 8)})`, transformOrigin: "top" }} />
@@ -751,7 +751,7 @@ function EStats({ s, meta, index, total }) {
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
-      ${s.example && html`<${Rise} delay=${12} style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 200, ...card, padding: "24px 34px", borderLeft: `5px solid ${colorOf(s.example.color || "amber")}`, display: "flex", gap: 34, alignItems: "center" }}>
+      ${s.example && html`<${Rise} delay=${12} style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 200, ...card, padding: "24px 34px", borderLeft: `4px solid ${INK}`, display: "flex", gap: 34, alignItems: "center" }}>
         <div style=${{ flexShrink: 0 }}>
           <${Tag} color=${colorOf(s.example.color || "amber")}>${s.example.tag}<//>
           <${Val} v=${s.example.value} delay=${18} style=${{ display: "block", marginTop: 8, font: `600 72px/1 ${HEAD}`, letterSpacing: "-0.03em", color: colorOf(s.example.valueColor || "red") }} />
@@ -774,7 +774,7 @@ function EStats({ s, meta, index, total }) {
         })}
       </div>
       <div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 330, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
-        <${Rise} delay=${50} style=${{ ...card, padding: "26px 34px", borderLeft: `5px solid ${colorOf(L.color || "red")}` }}>
+        <${Rise} delay=${50} style=${{ ...card, padding: "26px 34px", borderLeft: `4px solid ${INK}` }}>
           <${Tag} color=${colorOf(L.color || "red")}>${L.title}<//>
           ${(L.points || []).map((p, k) => html`<${Rise} key=${k} delay=${58 + k * 5} y=${8} style=${{ marginTop: 16, display: "flex", gap: 14, font: `400 22px/1.38 ${BODY}`, color: INK }}>
             <span style=${{ color: colorOf(L.color || "red"), fontWeight: 600, flexShrink: 0 }}>✕</span><span>${p}</span>
@@ -909,8 +909,8 @@ function EPrice({ s, meta, index, total }) {
             <div style=${{ marginTop: 8, display: "grid", gridTemplateColumns: `1.7fr repeat(${s.table.columns.length}, 1fr)`, font: `600 15px/1.2 ${BODY}`, color: MUTED, paddingBottom: 6, borderBottom: `2px solid ${INK}` }}>
               <span />${s.table.columns.map((c, j) => html`<span key=${j} style=${{ textAlign: "right" }}>${c}</span>`)}
             </div>
-            ${s.table.rows.map((r, i) => html`<div key=${i} style=${{ display: "grid", gridTemplateColumns: `1.7fr repeat(${s.table.columns.length}, 1fr)`, padding: r.hl ? "8px 8px" : "6px 0", margin: r.hl ? "4px -8px 0" : 0, borderRadius: 8, background: r.hl ? "rgba(20,50,255,.07)" : "transparent", borderBottom: r.hl ? "none" : `1px solid ${LINE}`,
-                font: `${r.hl ? 600 : 400} 17px/1.25 ${BODY}`, color: r.hl ? BLUE : r.sub ? MUTED : INK, fontVariantNumeric: "tabular-nums" }}>
+            ${s.table.rows.map((r, i) => html`<div key=${i} style=${{ display: "grid", gridTemplateColumns: `1.7fr repeat(${s.table.columns.length}, 1fr)`, padding: r.hl ? "8px 8px" : "6px 0", margin: r.hl ? "4px -8px 0" : 0, borderRadius: 8, background: r.hl ? "rgba(14,17,22,.05)" : "transparent", borderBottom: r.hl ? "none" : `1px solid ${LINE}`,
+                font: `${r.hl ? 600 : 400} 17px/1.25 ${BODY}`, color: r.hl ? INK : r.sub ? MUTED : INK, fontVariantNumeric: "tabular-nums" }}>
               <span>${r.label}</span>${r.values.map((v, j) => html`<span key=${j} style=${{ textAlign: "right" }}>${v}</span>`)}
             </div>`)}
           <//>`}
@@ -1000,7 +1000,7 @@ function ETimeline({ s, meta, index, total }) {
         const two = rows.length > 1;
         const h = two ? 138 : 250;
         return rows.map((row, r) => row.length > 0 && html`<div key=${r} style=${{ position: "absolute", left: 0, right: 0, bottom: two && r === 0 ? h + 14 : 0, height: h, display: "grid", gridTemplateColumns: `repeat(${row.length}, 1fr)`, gap: 24 }}>
-          ${row.map((c, i) => html`<${Rise} key=${i} delay=${70 + r * 24 + i * 8} style=${{ ...card, padding: two ? "16px 24px" : "22px 28px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
+          ${row.map((c, i) => html`<${Rise} key=${i} delay=${70 + r * 24 + i * 8} style=${{ ...card, padding: two ? "16px 24px" : "22px 28px", borderLeft: `4px solid ${INK}` }}>
             <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
             <div style=${{ marginTop: two ? 8 : 12, font: `600 ${two ? 23 : 27}px/1.25 ${HEAD}`, color: INK }}>${c.title}</div>
             <div style=${{ marginTop: two ? 6 : 10, font: `400 ${two ? 18 : 21}px/1.4 ${BODY}`, color: MUTED }}>${c.text}</div>
@@ -1065,7 +1065,7 @@ function EPath({ s, meta, index, total }) {
         })}
       </div>
       ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 132, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
-        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${100 + i * 8} style=${{ ...card, padding: "16px 24px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
+        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${100 + i * 8} style=${{ ...card, padding: "16px 24px", borderLeft: `4px solid ${INK}` }}>
           <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
           <div style=${{ marginTop: 6, font: `600 21px/1.2 ${HEAD}`, color: INK }}>${c.title}</div>
           <div style=${{ marginTop: 4, font: `400 16px/1.35 ${BODY}`, color: MUTED }}>${c.text}</div>
