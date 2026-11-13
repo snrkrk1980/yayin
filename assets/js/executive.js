@@ -74,7 +74,7 @@ function Head({ s, size = 58, max = 1500 }) {
   return html`<div>
     <${Drift} />
     <${SectionBar} sections=${s._sections} current=${s.section} />
-    <${Kicker} text=${s.kicker} delay=${2} color=${MUTED} />
+    <${Kicker} text=${s.kicker} delay=${2} color=${SECTION_COL[s.section] || MUTED} />
     <${RiseText} text=${s.title} delay=${6} stagger=${1.5} gradientWords=${0}
       style=${{ marginTop: 22, font: `600 ${size}px/1.08 ${HEAD}`, letterSpacing: "-0.03em", maxWidth: max, color: INK }} />
     ${s.sub && html`<${Rise} delay=${16} style=${{ marginTop: 16, font: `400 25px/1.4 ${BODY}`, color: MUTED, maxWidth: max }}>${s.sub}<//>`}
@@ -92,6 +92,9 @@ function Note({ s, delay = 60 }) {
   <//>`;
 }
 const colorOf = (c) => ({ green: GREEN, red: RED, amber: AMBER, blue: BLUE, navy: NAVY, teal: C.teal }[c] || c || BLUE);
+// bolum renkleri: secenek bolumlerinde etiket model renginde, kart cizgileri anlam renginde; problem/karar bolumleri notr
+const SECTION_COL = { Direct: BLUE, Indirect: RED, "T-ROP": GREEN };
+const lineOf = (s, c) => (SECTION_COL[s && s.section] ? c : INK);
 
 // ---------- 1. kapak (lacivert) ----------
 function ECover({ s, meta }) {
@@ -410,7 +413,7 @@ function ECards({ s, meta, index, total }) {
         ${cards.map((c, i) => {
           const col = colorOf(c.color);
           const d = 14 + i * 7;
-          return html`<${Rise} key=${i} delay=${d} style=${{ ...card, padding: `${28 * z}px ${32 * z}px`, borderTop: `4px solid ${INK}`, display: "flex", flexDirection: "column", justifyContent: noValues ? "center" : "flex-start" }}>
+          return html`<${Rise} key=${i} delay=${d} style=${{ ...card, padding: `${28 * z}px ${32 * z}px`, borderTop: `4px solid ${lineOf(s, col)}`, display: "flex", flexDirection: "column", justifyContent: noValues ? "center" : "flex-start" }}>
             ${c.tag && html`<${Tag} color=${col}>${c.tag}<//>`}
             ${c.value != null && html`<${Val} v=${c.value} delay=${d + 6} style=${{ display: "block", marginTop: 16, font: `600 ${54 * z}px/1 ${HEAD}`, letterSpacing: "-0.03em", color: INK }} />`}
             ${c.label && html`<div style=${{ marginTop: 12, font: `600 ${24 * z}px/1.28 ${HEAD}`, color: INK }}>${c.label}</div>`}
@@ -444,7 +447,7 @@ function EModel({ s, meta, index, total }) {
       <${Head} s=${s} />
       <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 250 : 200, bottom: 0, display: "grid", gridTemplateColumns: hasSide ? "1fr 440px" : "1fr", gap: 40 }}>
         <div style=${{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <${Rise} delay=${12} style=${{ ...box(NAVY, "#fff"), width: 520 }}>
+          <${Rise} delay=${12} style=${{ ...box(colorOf(s.topColor || "navy"), "#fff"), width: 520 }}>
             <div style=${{ font: `600 30px/1.1 ${HEAD}` }}>${s.top?.name}</div>
             <div style=${{ marginTop: 6, font: `400 18px/1.3 ${BODY}`, color: "rgba(255,255,255,.7)" }}>${s.top?.text}</div>
           <//>
@@ -466,7 +469,7 @@ function EModel({ s, meta, index, total }) {
           </svg>
           </div>
           <div style=${{ width: 1100, display: "grid", gridTemplateColumns: `repeat(${units.length}, 1fr)`, gap: 20 }}>
-            ${units.map((u, i) => html`<${Rise} key=${i} delay=${54 + i * 6} style=${{ ...card, padding: "18px 22px", borderTop: `4px solid ${C.teal}` }}>
+            ${units.map((u, i) => html`<${Rise} key=${i} delay=${54 + i * 6} style=${{ ...card, padding: "18px 22px", borderTop: `4px solid ${lineOf(s, colorOf(s.hubColor || "teal"))}` }}>
               <div style=${{ font: `600 25px/1.15 ${HEAD}`, color: INK }}>${u.name}</div>
               ${u.sub && html`<div style=${{ marginTop: 4, font: `400 16px/1.3 ${BODY}`, color: MUTED }}>${u.sub}</div>`}
               ${(u.points || []).map((p, k) => html`<div key=${k} style=${{ marginTop: units.some((x) => x.to) ? 5 : 8, font: `400 ${units.some((x) => x.to) ? 15 : 17}px/1.3 ${BODY}`, color: "#2E3440", display: "flex", gap: 8 }}>
@@ -1065,7 +1068,7 @@ function EPath({ s, meta, index, total }) {
         })}
       </div>
       ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 132, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
-        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${100 + i * 8} style=${{ ...card, padding: "16px 24px", borderLeft: `4px solid ${INK}` }}>
+        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${100 + i * 8} style=${{ ...card, padding: "16px 24px", borderLeft: `4px solid ${lineOf(s, colorOf(c.color))}` }}>
           <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
           <div style=${{ marginTop: 6, font: `600 21px/1.2 ${HEAD}`, color: INK }}>${c.title}</div>
           <div style=${{ marginTop: 4, font: `400 16px/1.35 ${BODY}`, color: MUTED }}>${c.text}</div>
