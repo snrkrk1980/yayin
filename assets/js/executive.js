@@ -37,11 +37,41 @@ function Val({ v, delay, style }) {
   return html`<span style=${style}>${v}</span>`;
 }
 function Rise({ delay = 0, children, style, y = 22 }) {
+  const frame = useCurrentFrame();
   const p = useT(delay, 26);
-  return html`<div style=${{ opacity: p, transform: `translateY(${(1 - p) * y}px)`, ...style }}>${children}</div>`;
+  // hafif yaylanma + bulaniktan netlesme: canli ama sakin
+  const q = interpolate(frame - delay, [0, 30], [0, 1], { ...clamp, easing: Easing.out(Easing.back(1.25)) });
+  return html`<div style=${{ opacity: p, transform: `translateY(${(1 - q) * y}px) scale(${0.985 + 0.015 * q})`, filter: p < 1 ? `blur(${(1 - p) * 5}px)` : "none", ...style }}>${children}</div>`;
+}
+// bolum seridi: Problem · Options · Direct · Indirect · EROP · Decision; bulunulan bolum dolar
+function SectionBar({ sections, current }) {
+  const frame = useCurrentFrame();
+  if (!sections || !current) return null;
+  const ci = sections.indexOf(current);
+  const fill = interpolate(frame - 4, [0, 34], [0, 1], ease);
+  return html`<div style=${{ position: "absolute", left: 0, right: 0, top: -84, display: "flex", gap: 10 }}>
+    ${sections.map((n, i) => html`<div key=${i} style=${{ flex: 1 }}>
+      <div style=${{ height: 4, borderRadius: 2, background: LINE, overflow: "hidden" }}>
+        <div style=${{ height: "100%", width: i < ci ? "100%" : i === ci ? `${fill * 100}%` : "0%", background: i === ci ? BLUE : "#B9C2D3", borderRadius: 2 }} />
+      </div>
+      <div style=${{ marginTop: 8, font: `${i === ci ? 600 : 500} 14px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: i === ci ? BLUE : i < ci ? MUTED : "#A3A9B5" }}>${n}</div>
+    </div>`)}
+  </div>`;
+}
+// arka planda cok yavas donen ince halka: slayt "olu" durmasin
+function Drift() {
+  const frame = useCurrentFrame();
+  const p = interpolate(frame, [0, 40], [0, 1], ease);
+  return html`<svg width="760" height="760" viewBox="0 0 760 760" style=${{ position: "absolute", right: -330, top: -330, opacity: 0.55 * p, transform: `rotate(${frame * 0.12}deg)`, pointerEvents: "none" }}>
+    <circle cx="380" cy="380" r="300" fill="none" stroke="rgba(20,50,255,.10)" strokeWidth="2" strokeDasharray="6 14" />
+    <circle cx="380" cy="380" r="220" fill="none" stroke="rgba(0,168,107,.10)" strokeWidth="2" />
+    <circle cx="380" cy="80" r="7" fill="rgba(20,50,255,.35)" />
+  </svg>`;
 }
 function Head({ s, size = 58, max = 1500 }) {
   return html`<div>
+    <${Drift} />
+    <${SectionBar} sections=${s._sections} current=${s.section} />
     <${Kicker} text=${s.kicker} delay=${2} />
     <${RiseText} text=${s.title} delay=${6} stagger=${1.5} gradientWords=${0}
       style=${{ marginTop: 22, font: `600 ${size}px/1.08 ${HEAD}`, letterSpacing: "-0.03em", maxWidth: max, color: INK }} />
@@ -396,7 +426,7 @@ function ECompare({ s, meta, index, total }) {
             <div style=${{ font: `600 24px/1.25 ${HEAD}`, color: INK, paddingRight: 20 }}>${r.label}</div>
             ${(r.cells || []).map((c, j) => html`<div key=${j} style=${{ padding: "0 24px", display: "flex", gap: 14, alignItems: "flex-start" }}>
               <span style=${{ width: 16, height: 16, borderRadius: "50%", background: dot[c.r] || MUTED, flexShrink: 0, marginTop: 6 }} />
-              <span style=${{ font: `${opts[j]?.accent && c.r === "good" ? 600 : 400} 21px/1.38 ${BODY}`, color: opts[j]?.accent && c.r === "good" ? "#00875A" : "#2E3440" }}>${c.t}</span>
+              <span style=${{ font: `${opts[j]?.accent && c.r === "good" ? 600 : 400} ${s.note ? 19 : 21}px/1.32 ${BODY}`, color: opts[j]?.accent && c.r === "good" ? "#00875A" : "#2E3440" }}>${c.t}</span>
             </div>`)}
           <//>`)}
           </div>
@@ -900,7 +930,9 @@ function EClosing({ s, meta }) {
   <//>`;
 }
 
-registerSlideTypes({
+const TYPES = {
   "e-cover": ECover, "e-summary": ESummary, "e-table": ETable, "e-gap": EGap, "e-bridge": EBridge, "e-cards": ECards,
   "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-stats": EStats, "e-duty": EDuty, "e-price": EPrice, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
-});
+};
+// her slayta destedeki bolum listesini tasi (bolum seridi icin)
+registerSlideTypes(Object.fromEntries(Object.entries(TYPES).map(([k, Comp]) => [k, (props) => html`<${Comp} ...${props} s=${{ ...props.s, _sections: props.meta?.sections }} />`])));
