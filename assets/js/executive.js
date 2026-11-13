@@ -22,6 +22,8 @@ const card = { background: "#fff", border: `1px solid ${LINE}`, borderRadius: 16
 const ease = { ...clamp, easing: Easing.out(Easing.cubic) };
 const fmt = (v, d = 0) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
+// **kalin** isaretli metni vurgulu gosterir
+const rich = (txt) => String(txt || "").split("**").map((part, i) => (i % 2 ? html`<strong key=${i} style=${{ fontWeight: 700, color: RED }}>${part}</strong>` : part));
 function useT(delay, dur = 30) {
   const frame = useCurrentFrame();
   return interpolate(frame - delay, [0, dur], [0, 1], ease);
@@ -127,7 +129,7 @@ function ESummary({ s, meta, index, total }) {
             <div style=${{ font: `600 34px/1 ${HEAD}`, color: BLUE, width: 48, flexShrink: 0 }}>${String(i + 1).padStart(2, "0")}</div>
             <div>
               <div style=${{ font: `600 27px/1.25 ${HEAD}`, color: INK }}>${p.title}</div>
-              <div style=${{ marginTop: 6, font: `400 21px/1.42 ${BODY}`, color: MUTED }}>${p.text}</div>
+              <div style=${{ marginTop: 6, font: `400 21px/1.42 ${BODY}`, color: MUTED }}>${rich(p.text)}</div>
             </div>
           <//>`)}
         </div>
@@ -348,9 +350,9 @@ function EBridge({ s, meta, index, total }) {
     <div style=${pad}>
       <${Head} s=${s} />
       <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.note ? 70 : 0, display: "grid", gridTemplateColumns: `repeat(${panels.length}, 1fr)`, gap: panels.length > 2 ? 24 : 40 }}>
-        ${panels.map((pn, i) => html`<${Rise} key=${i} delay=${12 + i * 30} style=${{ ...card, padding: panels.length > 2 ? "22px 26px 0" : "24px 40px 0", border: pn.accent ? `2px solid ${BLUE}` : card.border }}>
+        ${panels.map((pn, i) => html`<${Rise} key=${i} delay=${12 + i * 30} style=${{ ...card, padding: panels.length > 2 ? "22px 26px 0" : "24px 40px 0", border: pn.accent ? `2px solid ${colorOf(pn.accentColor || "blue")}` : card.border }}>
           <div style=${{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6 }}>
-            <div style=${{ font: `600 ${panels.length > 2 ? 24 : 28}px/1.2 ${HEAD}`, color: pn.accent ? BLUE : pn.color ? colorOf(pn.color) : INK }}>${pn.title}</div>
+            <div style=${{ font: `600 ${panels.length > 2 ? 24 : 28}px/1.2 ${HEAD}`, color: pn.color ? colorOf(pn.color) : pn.accent ? colorOf(pn.accentColor || "blue") : INK }}>${pn.title}</div>
             <div style=${{ font: `400 18px/1.2 ${BODY}`, color: MUTED }}>${pn.caption}</div>
           </div>
           ${pn.floor && html`<div style=${{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, font: `600 17px/1 ${BODY}`, color: GREEN }}>
@@ -446,10 +448,10 @@ function EModel({ s, meta, index, total }) {
             <div style=${{ font: `600 30px/1.1 ${HEAD}` }}>${s.top?.name}</div>
             <div style=${{ marginTop: 6, font: `400 18px/1.3 ${BODY}`, color: "rgba(255,255,255,.7)" }}>${s.top?.text}</div>
           <//>
-          <div style=${{ position: "relative", height: 56, width: 2, background: BLUE, transform: `scaleY(${draw(24)})`, transformOrigin: "top" }}>
-            <div style=${{ position: "absolute", left: 22, top: 16, width: 760, font: `500 18px/1.3 ${BODY}`, color: BLUE, opacity: draw(30), whiteSpace: "nowrap" }}>${s.link}</div>
+          <div style=${{ position: "relative", height: 56, width: 2, background: colorOf(s.hubColor || "blue"), transform: `scaleY(${draw(24)})`, transformOrigin: "top" }}>
+            <div style=${{ position: "absolute", left: 22, top: 16, width: 760, font: `500 18px/1.3 ${BODY}`, color: colorOf(s.hubColor || "blue"), opacity: draw(30), whiteSpace: "nowrap" }}>${s.link}</div>
           </div>
-          <${Rise} delay=${32} style=${{ ...box(BLUE, "#fff"), width: 700, boxShadow: "0 12px 30px rgba(20,50,255,.25)" }}>
+          <${Rise} delay=${32} style=${{ ...box(colorOf(s.hubColor || "blue"), "#fff"), width: 700, boxShadow: "0 12px 30px rgba(16,24,40,.22)" }}>
             <div style=${{ font: `600 34px/1.1 ${HEAD}` }}>${s.hub?.name}</div>
             <div style=${{ marginTop: 6, font: `400 19px/1.35 ${BODY}`, color: "rgba(255,255,255,.85)" }}>${s.hub?.text}</div>
           <//>
@@ -459,7 +461,7 @@ function EModel({ s, meta, index, total }) {
             ${units.map((u, i) => {
               const x = (1100 / units.length) * (i + 0.5);
               const len = Math.hypot(x - 550, 44);
-              return html`<line key=${i} x1="550" y1="0" x2=${x} y2="44" stroke=${BLUE} strokeWidth="2" strokeDasharray=${len} strokeDashoffset=${len * (1 - draw(46 + i * 4))} />`;
+              return html`<line key=${i} x1="550" y1="0" x2=${x} y2="44" stroke=${colorOf(s.hubColor || "blue")} strokeWidth="2" strokeDasharray=${len} strokeDashoffset=${len * (1 - draw(46 + i * 4))} />`;
             })}
           </svg>
           </div>
@@ -507,10 +509,10 @@ function ECompare({ s, meta, index, total }) {
       <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.note ? 70 : 0 }}>
         <div style=${{ position: "relative", height: "100%" }}>
           ${acc >= 0 && html`<${Rise} delay=${10} style=${{ position: "absolute", top: -10, bottom: -10, left: `calc(330px + (100% - 330px) / ${opts.length} * ${acc})`, width: `calc((100% - 330px) / ${opts.length})`,
-            borderRadius: 16, border: `2px solid ${BLUE}`, background: "rgba(20,50,255,.04)" }} />`}
+            borderRadius: 16, border: `2px solid ${colorOf(s.accentColor || "blue")}`, background: "rgba(16,24,40,.02)" }} />`}
           <div style=${{ position: "relative", display: "grid", gridTemplateColumns: grid, padding: "8px 0 16px", borderBottom: `2px solid ${INK}` }}>
             <div />
-            ${opts.map((o, j) => html`<${Rise} key=${j} delay=${12 + j * 5} style=${{ padding: "0 24px", font: `600 26px/1.2 ${HEAD}`, color: o.accent ? BLUE : INK }}>
+            ${opts.map((o, j) => html`<${Rise} key=${j} delay=${12 + j * 5} style=${{ padding: "0 24px", font: `600 26px/1.2 ${HEAD}`, color: o.color ? colorOf(o.color) : o.accent ? BLUE : INK }}>
               ${o.name}
               ${o.sub && html`<div style=${{ marginTop: 4, font: `400 17px/1.3 ${BODY}`, color: MUTED }}>${o.sub}</div>`}
               ${o.verdict && html`<div style=${{ display: "inline-block", marginTop: 12, padding: "7px 14px", borderRadius: 999, background: `${dot[o.r] || MUTED}1A`,
@@ -749,10 +751,10 @@ function EStats({ s, meta, index, total }) {
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
-      ${s.example && html`<${Rise} delay=${12} style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 200, ...card, padding: "24px 34px", borderLeft: `5px solid ${AMBER}`, display: "flex", gap: 34, alignItems: "center" }}>
+      ${s.example && html`<${Rise} delay=${12} style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 200, ...card, padding: "24px 34px", borderLeft: `5px solid ${colorOf(s.example.color || "amber")}`, display: "flex", gap: 34, alignItems: "center" }}>
         <div style=${{ flexShrink: 0 }}>
-          <${Tag} color=${AMBER}>${s.example.tag}<//>
-          <${Val} v=${s.example.value} delay=${18} style=${{ display: "block", marginTop: 8, font: `600 72px/1 ${HEAD}`, letterSpacing: "-0.03em", color: RED }} />
+          <${Tag} color=${colorOf(s.example.color || "amber")}>${s.example.tag}<//>
+          <${Val} v=${s.example.value} delay=${18} style=${{ display: "block", marginTop: 8, font: `600 72px/1 ${HEAD}`, letterSpacing: "-0.03em", color: colorOf(s.example.valueColor || "red") }} />
           <div style=${{ marginTop: 4, font: `500 17px/1.3 ${BODY}`, color: MUTED }}>${s.example.valueLabel}</div>
         </div>
         <div style=${{ borderLeft: `1px solid ${LINE}`, paddingLeft: 34 }}>
@@ -772,10 +774,10 @@ function EStats({ s, meta, index, total }) {
         })}
       </div>
       <div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 330, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
-        <${Rise} delay=${50} style=${{ ...card, padding: "26px 34px", borderLeft: `5px solid ${RED}` }}>
-          <${Tag} color=${RED}>${L.title}<//>
+        <${Rise} delay=${50} style=${{ ...card, padding: "26px 34px", borderLeft: `5px solid ${colorOf(L.color || "red")}` }}>
+          <${Tag} color=${colorOf(L.color || "red")}>${L.title}<//>
           ${(L.points || []).map((p, k) => html`<${Rise} key=${k} delay=${58 + k * 5} y=${8} style=${{ marginTop: 16, display: "flex", gap: 14, font: `400 22px/1.38 ${BODY}`, color: INK }}>
-            <span style=${{ color: RED, fontWeight: 600, flexShrink: 0 }}>✕</span><span>${p}</span>
+            <span style=${{ color: colorOf(L.color || "red"), fontWeight: 600, flexShrink: 0 }}>✕</span><span>${p}</span>
           <//>`)}
         <//>
         <${Rise} delay=${70} style=${{ background: NAVY, borderRadius: 16, padding: "26px 34px", color: "#fff", position: "relative", overflow: "hidden" }}>
@@ -1026,7 +1028,7 @@ function EPath({ s, meta, index, total }) {
       <${Head} s=${s} />
       <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 250 : 200, height: 410 }}>
         <svg width=${W} height="410" style=${{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
-          <line x1="0" y1=${MY} x2=${SX * lineP} y2=${MY} stroke=${BLUE} strokeWidth="4" />
+          <line x1="0" y1=${MY} x2=${SX * lineP} y2=${MY} stroke=${colorOf(s.lineColor || "blue")} strokeWidth="4" />
           ${br.map((b, k) => {
             const y = BY[k];
             const d = `M${SX},${MY} C${SX + 70},${MY} ${SX + 50},${y} ${SX + 130},${y} L${W - 10},${y}`;
@@ -1037,8 +1039,8 @@ function EPath({ s, meta, index, total }) {
         ${steps.map((st, i) => {
           const p = interpolate(frame - 16 - i * 7, [0, 20], [0, 1], ease);
           return html`<div key=${i} style=${{ position: "absolute", left: sx(i), top: MY - 11, width: (SX - 12) / steps.length - 14, opacity: p }}>
-            <div style=${{ width: 22, height: 22, borderRadius: "50%", background: "#fff", border: `5px solid ${BLUE}` }} />
-            <div style=${{ position: "absolute", top: -26, left: 0, font: `600 15px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: BLUE, whiteSpace: "nowrap" }}>${st.when}</div>
+            <div style=${{ width: 22, height: 22, borderRadius: "50%", background: "#fff", border: `5px solid ${colorOf(s.lineColor || "blue")}` }} />
+            <div style=${{ position: "absolute", top: -26, left: 0, font: `600 15px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: colorOf(s.lineColor || "blue"), whiteSpace: "nowrap" }}>${st.when}</div>
             <div style=${{ marginTop: 12, font: `600 21px/1.2 ${HEAD}`, color: INK }}>${st.title}</div>
             <div style=${{ marginTop: 4, font: `400 16px/1.35 ${BODY}`, color: MUTED }}>${st.text}</div>
           </div>`;
