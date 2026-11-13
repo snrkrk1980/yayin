@@ -1017,7 +1017,7 @@ function EPath({ s, meta, index, total }) {
   const steps = s.steps || [];
   const br = s.branches || [];
   const cards = s.cards || [];
-  const W = 1680, SX = 1000, MY = 170, BY = [40, 290];
+  const W = 1680, SX = 1000, MY = 160, BY = [40, 262];
   const sx = (i) => 12 + (i * (SX - 12)) / steps.length;
   const lineP = interpolate(frame - 10, [0, 50], [0, 1], ease);
   const brP = interpolate(frame - 60, [0, 40], [0, 1], ease);
@@ -1043,7 +1043,7 @@ function EPath({ s, meta, index, total }) {
             <div style=${{ marginTop: 4, font: `400 16px/1.35 ${BODY}`, color: MUTED }}>${st.text}</div>
           </div>`;
         })}
-        ${s.split && html`<div style=${{ position: "absolute", left: SX - 165, top: MY - 74, width: 150, textAlign: "right", opacity: lineP }}>
+        ${false && s.split && html`<div style=${{ position: "absolute", left: SX - 165, top: MY - 74, width: 150, textAlign: "right", opacity: lineP }}>
           <div style=${{ font: `600 15px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: NAVY }}>${s.split.when}</div>
           <div style=${{ marginTop: 6, font: `600 19px/1.2 ${HEAD}`, color: INK }}>${s.split.title}</div>
         </div>`}
@@ -1062,7 +1062,7 @@ function EPath({ s, meta, index, total }) {
           </div>`;
         })}
       </div>
-      ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 150, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
+      ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 132, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
         ${cards.map((c, i) => html`<${Rise} key=${i} delay=${100 + i * 8} style=${{ ...card, padding: "16px 24px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
           <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
           <div style=${{ marginTop: 6, font: `600 21px/1.2 ${HEAD}`, color: INK }}>${c.title}</div>
