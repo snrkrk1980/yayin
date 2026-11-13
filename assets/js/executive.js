@@ -240,9 +240,63 @@ function EGap({ s, meta, index, total }) {
   <//>`;
 }
 
+// ---------- 4b. acik: iki panel yan yana (plan | worst case), her birinde iki cubuk ve iki kaldirac ----------
+// panels: [{ tag, color, caption, bars: [{ label, value, color, dashed }], gap, levers: [{ value, label, text }] }], punch
+function EGap2({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const panels = s.panels || [];
+  const max = s.max || 30;
+  const H = 230;
+  return html`<${Frame} dark=${false}>
+    <div style=${pad}>
+      <${Head} s=${s} />
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.punch ? 92 : 0, display: "grid", gridTemplateColumns: `repeat(${panels.length}, 1fr)`, gap: 32 }}>
+        ${panels.map((pn, k) => {
+          const col = colorOf(pn.color);
+          const d0 = 12 + k * 22;
+          return html`<${Rise} key=${k} delay=${d0} style=${{ ...card, padding: "22px 32px", borderTop: `5px solid ${col}`, display: "flex", flexDirection: "column" }}>
+            <div style=${{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 20 }}>
+              <${Tag} color=${col}>${pn.tag}<//>
+              <div style=${{ font: `400 17px/1.3 ${BODY}`, color: MUTED }}>${pn.caption}</div>
+            </div>
+            <div style=${{ display: "flex", gap: 34, marginTop: 14, flex: 1 }}>
+              <div style=${{ width: 330, display: "flex", flexDirection: "column" }}>
+                <div style=${{ height: H, display: "flex", alignItems: "flex-end", justifyContent: "space-around", borderBottom: `2px solid ${INK}` }}>
+                  ${pn.bars.map((b, i) => {
+                    const p = interpolate(frame - d0 - 10 - i * 10, [0, 36], [0, 1], ease);
+                    const bc = colorOf(b.color);
+                    return html`<div key=${i} style=${{ width: 120, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
+                      <div style=${{ font: `600 38px/1 ${HEAD}`, color: bc, marginBottom: 10, opacity: p }}>${fmt(b.value * p, 1)}%</div>
+                      <div style=${{ width: "100%", height: (b.value / max) * (H - 60) * p, background: b.dashed ? "transparent" : bc, border: b.dashed ? `3px dashed ${bc}` : "none", borderBottom: "none", borderRadius: "8px 8px 0 0" }} />
+                    </div>`;
+                  })}
+                </div>
+                <div style=${{ display: "flex", justifyContent: "space-around", marginTop: 8, font: `500 17px/1.2 ${BODY}`, color: INK }}>
+                  ${pn.bars.map((b, i) => html`<span key=${i} style=${{ width: 120, textAlign: "center" }}>${b.label}</span>`)}
+                </div>
+                ${pn.gap && html`<${Rise} delay=${d0 + 40} style=${{ alignSelf: "flex-start", marginTop: 14, padding: "7px 14px", borderRadius: 8, background: `${col}14`, border: `1px solid ${col}55`, font: `600 20px/1.2 ${HEAD}`, color: col }}>${pn.gap}<//>`}
+              </div>
+              <div style=${{ flex: 1, display: "flex", flexDirection: "column", gap: 16, justifyContent: "center" }}>
+                <div style=${{ font: `600 18px/1.2 ${BODY}`, color: MUTED }}>${s.leversTitle || "To close it, the direct model needs:"}</div>
+                ${(pn.levers || []).map((lv, i) => html`<${Rise} key=${i} delay=${d0 + 30 + i * 8} style=${{ paddingTop: 12, borderTop: `1px solid ${LINE}` }}>
+                  <${Val} v=${lv.value} delay=${d0 + 34 + i * 8} style=${{ font: `600 48px/1 ${HEAD}`, letterSpacing: "-0.03em", color: col }} />
+                  <div style=${{ marginTop: 6, font: `600 20px/1.25 ${HEAD}`, color: INK }}>${lv.label}</div>
+                  ${lv.text && html`<div style=${{ marginTop: 4, font: `400 17px/1.35 ${BODY}`, color: MUTED }}>${lv.text}</div>`}
+                <//>`)}
+              </div>
+            </div>
+          <//>`;
+        })}
+      </div>
+      ${s.punch && html`<${Rise} delay=${80} style=${{ position: "absolute", left: 0, right: 0, bottom: 0, padding: "18px 26px", borderRadius: 12, background: NAVY, color: "#fff", font: `500 23px/1.4 ${BODY}` }}>${s.punch}<//>`}
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
 // ---------- 5. ISM kopru grafigi: bugun vs EROP modeli, iki selale ----------
 // panels: [{ title, caption, steps: [{ label, value, kind: "up"|"down"|"total" }], floor: { value, label } }]
-function Waterfall({ pnl, delay, max }) {
+function Waterfall({ pnl, delay, max, width = 640 }) {
   const frame = useCurrentFrame();
   const H = 270;
   const y = (v) => H - (v / max) * H;
@@ -254,7 +308,7 @@ function Waterfall({ pnl, delay, max }) {
     return { ...st, lo: Math.min(from, to), hi: Math.max(from, to) };
   });
   const n = steps.length;
-  const W = 640, colW = W / n;
+  const W = width, colW = W / n;
   return html`<div style=${{ position: "relative", height: H + 64 }}>
     <svg width=${W} height=${H + 4} style=${{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
       <line x1="0" x2=${W} y1=${H} y2=${H} stroke=${INK} strokeWidth="2" />
@@ -280,11 +334,11 @@ function Waterfall({ pnl, delay, max }) {
       const p = interpolate(frame - delay - i * 12 - 10, [0, 20], [0, 1], ease);
       const x = i * colW;
       return html`<div key=${i} style=${{ position: "absolute", left: x, width: colW, top: y(st.hi) - 46, textAlign: "center", opacity: p,
-          font: `600 ${st.kind === "total" ? 36 : 28}px/1 ${HEAD}`, color: st.kind === "down" ? RED : st.kind === "total" ? colorOf(st.color || "blue") : INK }}>
+          font: `600 ${st.kind === "total" ? (W < 600 ? 30 : 36) : (W < 600 ? 23 : 28)}px/1 ${HEAD}`, color: st.kind === "down" ? RED : st.kind === "total" ? colorOf(st.color || "blue") : INK }}>
         ${st.display || (st.kind === "down" ? "−" : st.kind === "up" ? "+" : "") + fmt(st.value, 1) + "%"}
       </div>`;
     })}
-    ${steps.map((st, i) => html`<div key=${"l" + i} style=${{ position: "absolute", left: i * colW, width: colW, top: H + 12, textAlign: "center", font: `500 18px/1.25 ${BODY}`, color: INK, padding: "0 6px" }}>${st.label}</div>`)}
+    ${steps.map((st, i) => html`<div key=${"l" + i} style=${{ position: "absolute", left: i * colW, width: colW, top: H + 12, textAlign: "center", font: `500 ${W < 600 ? 16 : 18}px/1.25 ${BODY}`, color: INK, padding: "0 6px" }}>${st.label}</div>`)}
   </div>`;
 }
 function EBridge({ s, meta, index, total }) {
@@ -293,16 +347,16 @@ function EBridge({ s, meta, index, total }) {
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
-      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.note ? 70 : 0, display: "grid", gridTemplateColumns: `repeat(${panels.length}, 1fr)`, gap: 40 }}>
-        ${panels.map((pn, i) => html`<${Rise} key=${i} delay=${12 + i * 30} style=${{ ...card, padding: "24px 40px 0", border: pn.accent ? `2px solid ${BLUE}` : card.border }}>
-          <div style=${{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-            <div style=${{ font: `600 28px/1.2 ${HEAD}`, color: pn.accent ? BLUE : INK }}>${pn.title}</div>
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.note ? 70 : 0, display: "grid", gridTemplateColumns: `repeat(${panels.length}, 1fr)`, gap: panels.length > 2 ? 24 : 40 }}>
+        ${panels.map((pn, i) => html`<${Rise} key=${i} delay=${12 + i * 30} style=${{ ...card, padding: panels.length > 2 ? "22px 26px 0" : "24px 40px 0", border: pn.accent ? `2px solid ${BLUE}` : card.border }}>
+          <div style=${{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6 }}>
+            <div style=${{ font: `600 ${panels.length > 2 ? 24 : 28}px/1.2 ${HEAD}`, color: pn.accent ? BLUE : pn.color ? colorOf(pn.color) : INK }}>${pn.title}</div>
             <div style=${{ font: `400 18px/1.2 ${BODY}`, color: MUTED }}>${pn.caption}</div>
           </div>
           ${pn.floor && html`<div style=${{ marginTop: 10, display: "flex", alignItems: "center", gap: 10, font: `600 17px/1 ${BODY}`, color: GREEN }}>
             <span style=${{ width: 34, borderTop: `3px dashed ${GREEN}` }} />${pn.floor.label}
           </div>`}
-          <div style=${{ marginTop: 56 }}><${Waterfall} pnl=${pn} delay=${20 + i * 30} max=${max} /></div>
+          <div style=${{ marginTop: 56 }}><${Waterfall} pnl=${pn} delay=${20 + i * 30} max=${max} width=${panels.length > 2 ? 470 : 640} /></div>
         <//>`)}
       </div>
       <${Note} s=${s} delay=${110} />
@@ -399,21 +453,30 @@ function EModel({ s, meta, index, total }) {
             <div style=${{ font: `600 34px/1.1 ${HEAD}` }}>${s.hub?.name}</div>
             <div style=${{ marginTop: 6, font: `400 19px/1.35 ${BODY}`, color: "rgba(255,255,255,.85)" }}>${s.hub?.text}</div>
           <//>
-          <svg width="1100" height="44" style=${{ overflow: "visible" }}>
+          <div style=${{ position: "relative", width: 1100 }}>
+          ${s.unitsNote && html`<div style=${{ position: "absolute", right: 0, top: 6, padding: "5px 12px", borderRadius: 999, background: "rgba(0,168,107,.10)", font: `600 15px/1.2 ${BODY}`, color: GREEN, opacity: draw(50) }}>${s.unitsNote}</div>`}
+          <svg width="1100" height="44" style=${{ overflow: "visible", display: "block" }}>
             ${units.map((u, i) => {
               const x = (1100 / units.length) * (i + 0.5);
               const len = Math.hypot(x - 550, 44);
               return html`<line key=${i} x1="550" y1="0" x2=${x} y2="44" stroke=${BLUE} strokeWidth="2" strokeDasharray=${len} strokeDashoffset=${len * (1 - draw(46 + i * 4))} />`;
             })}
           </svg>
+          </div>
           <div style=${{ width: 1100, display: "grid", gridTemplateColumns: `repeat(${units.length}, 1fr)`, gap: 20 }}>
             ${units.map((u, i) => html`<${Rise} key=${i} delay=${54 + i * 6} style=${{ ...card, padding: "18px 22px", borderTop: `4px solid ${C.teal}` }}>
               <div style=${{ font: `600 25px/1.15 ${HEAD}`, color: INK }}>${u.name}</div>
               ${u.sub && html`<div style=${{ marginTop: 4, font: `400 16px/1.3 ${BODY}`, color: MUTED }}>${u.sub}</div>`}
-              ${(u.points || []).map((p, k) => html`<div key=${k} style=${{ marginTop: 8, font: `400 17px/1.35 ${BODY}`, color: "#2E3440", display: "flex", gap: 8 }}>
+              ${(u.points || []).map((p, k) => html`<div key=${k} style=${{ marginTop: units.some((x) => x.to) ? 5 : 8, font: `400 ${units.some((x) => x.to) ? 15 : 17}px/1.3 ${BODY}`, color: "#2E3440", display: "flex", gap: 8 }}>
                 <span style=${{ color: C.teal }}>›</span><span>${p}</span></div>`)}
             <//>`)}
           </div>
+          ${units.some((u) => u.to) && html`<div style=${{ width: 1100, display: "grid", gridTemplateColumns: `repeat(${units.length}, 1fr)`, gap: 20 }}>
+            ${units.map((u, i) => html`<div key=${i} style=${{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+              <div style=${{ width: 2, height: 22, background: C.teal, transform: `scaleY(${draw(70 + i * 4)})`, transformOrigin: "top" }} />
+              <${Rise} delay=${74 + i * 5} style=${{ width: "100%", padding: "10px 16px", borderRadius: 10, border: `1.5px dashed ${C.teal}`, background: "rgba(0,168,107,.05)", textAlign: "center", font: `600 17px/1.3 ${BODY}`, color: INK }}>${u.to}<//>
+            </div>`)}
+          </div>`}
           ${s.market && html`<${Rise} delay=${80} style=${{ marginTop: 16, width: 1100, padding: "12px 20px", borderRadius: 10, border: `1px dashed ${MUTED}88`, textAlign: "center", font: `500 19px/1.3 ${BODY}`, color: MUTED }}>${s.market}<//>`}
         </div>
         ${hasSide && html`<${Rise} delay=${40} style=${{ ...card, padding: "28px 30px", alignSelf: "stretch", display: "flex", flexDirection: "column" }}>
@@ -686,6 +749,17 @@ function EStats({ s, meta, index, total }) {
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
+      ${s.example && html`<${Rise} delay=${12} style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 200, ...card, padding: "24px 34px", borderLeft: `5px solid ${AMBER}`, display: "flex", gap: 34, alignItems: "center" }}>
+        <div style=${{ flexShrink: 0 }}>
+          <${Tag} color=${AMBER}>${s.example.tag}<//>
+          <${Val} v=${s.example.value} delay=${18} style=${{ display: "block", marginTop: 8, font: `600 72px/1 ${HEAD}`, letterSpacing: "-0.03em", color: RED }} />
+          <div style=${{ marginTop: 4, font: `500 17px/1.3 ${BODY}`, color: MUTED }}>${s.example.valueLabel}</div>
+        </div>
+        <div style=${{ borderLeft: `1px solid ${LINE}`, paddingLeft: 34 }}>
+          <div style=${{ font: `600 26px/1.3 ${HEAD}`, color: INK }}>${s.example.title}</div>
+          <div style=${{ marginTop: 10, font: `400 21px/1.45 ${BODY}`, color: "#2E3440" }}>${s.example.text}</div>
+        </div>
+      <//>`}
       <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 200, display: "grid", gridTemplateColumns: `repeat(${stats.length}, 1fr)`, gap: 24 }}>
         ${stats.map((st, i) => {
           const col = colorOf(st.color);
@@ -936,8 +1010,71 @@ function ETimeline({ s, meta, index, total }) {
   <//>`;
 }
 
-// ---------- 11. karar talebi ----------
-// statement, askTitle, asks: [...], checkTitle, checks: [...], next
+// ---------- 10b. dallanan yol: gecis adimlari tek cizgide, sonra iki dal (piyasa duzelirse / duzelmezse) + alt kartlar ----------
+// steps: [{ when, title, text }], split: { when, title }, branches: [{ tag, color, steps: [{ title, text }] }], cards: [{ tag, color, title, text }]
+function EPath({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const steps = s.steps || [];
+  const br = s.branches || [];
+  const cards = s.cards || [];
+  const W = 1680, SX = 1000, MY = 170, BY = [40, 290];
+  const sx = (i) => 12 + (i * (SX - 12)) / steps.length;
+  const lineP = interpolate(frame - 10, [0, 50], [0, 1], ease);
+  const brP = interpolate(frame - 60, [0, 40], [0, 1], ease);
+  return html`<${Frame} dark=${false}>
+    <div style=${pad}>
+      <${Head} s=${s} />
+      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 250 : 200, height: 410 }}>
+        <svg width=${W} height="410" style=${{ position: "absolute", left: 0, top: 0, overflow: "visible" }}>
+          <line x1="0" y1=${MY} x2=${SX * lineP} y2=${MY} stroke=${BLUE} strokeWidth="4" />
+          ${br.map((b, k) => {
+            const y = BY[k];
+            const d = `M${SX},${MY} C${SX + 70},${MY} ${SX + 50},${y} ${SX + 130},${y} L${W - 10},${y}`;
+            return html`<path key=${k} d=${d} fill="none" stroke=${colorOf(b.color)} strokeWidth="4" strokeDasharray="1600" strokeDashoffset=${1600 * (1 - brP)} />`;
+          })}
+          <circle cx=${SX} cy=${MY} r=${12 * lineP} fill=${NAVY} />
+        </svg>
+        ${steps.map((st, i) => {
+          const p = interpolate(frame - 16 - i * 7, [0, 20], [0, 1], ease);
+          return html`<div key=${i} style=${{ position: "absolute", left: sx(i), top: MY - 11, width: (SX - 12) / steps.length - 14, opacity: p }}>
+            <div style=${{ width: 22, height: 22, borderRadius: "50%", background: "#fff", border: `5px solid ${BLUE}` }} />
+            <div style=${{ position: "absolute", top: -26, left: 0, font: `600 15px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: BLUE, whiteSpace: "nowrap" }}>${st.when}</div>
+            <div style=${{ marginTop: 12, font: `600 21px/1.2 ${HEAD}`, color: INK }}>${st.title}</div>
+            <div style=${{ marginTop: 4, font: `400 16px/1.35 ${BODY}`, color: MUTED }}>${st.text}</div>
+          </div>`;
+        })}
+        ${s.split && html`<div style=${{ position: "absolute", left: SX - 165, top: MY - 74, width: 150, textAlign: "right", opacity: lineP }}>
+          <div style=${{ font: `600 15px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: NAVY }}>${s.split.when}</div>
+          <div style=${{ marginTop: 6, font: `600 19px/1.2 ${HEAD}`, color: INK }}>${s.split.title}</div>
+        </div>`}
+        ${br.map((b, k) => {
+          const y = BY[k], col = colorOf(b.color), x0 = SX + 140, span = (W - x0) / b.steps.length;
+          return html`<div key=${k}>
+            <div style=${{ position: "absolute", left: x0, top: y - 40, font: `600 16px/1 ${BODY}`, letterSpacing: "0.12em", textTransform: "uppercase", color: col, opacity: brP }}>${b.tag}</div>
+            ${b.steps.map((st, i) => {
+              const p = interpolate(frame - 74 - k * 10 - i * 8, [0, 18], [0, 1], ease);
+              return html`<div key=${i} style=${{ position: "absolute", left: x0 + i * span, top: y - 10, width: span - 16, opacity: p }}>
+                <div style=${{ width: 20, height: 20, borderRadius: "50%", background: "#fff", border: `5px solid ${col}` }} />
+                <div style=${{ marginTop: 10, font: `600 19px/1.2 ${HEAD}`, color: INK }}>${st.title}</div>
+                <div style=${{ marginTop: 3, font: `400 15px/1.3 ${BODY}`, color: MUTED }}>${st.text}</div>
+              </div>`;
+            })}
+          </div>`;
+        })}
+      </div>
+      ${cards.length > 0 && html`<div style=${{ position: "absolute", left: 0, right: 0, bottom: 0, height: 150, display: "grid", gridTemplateColumns: `repeat(${cards.length}, 1fr)`, gap: 24 }}>
+        ${cards.map((c, i) => html`<${Rise} key=${i} delay=${100 + i * 8} style=${{ ...card, padding: "16px 24px", borderLeft: `5px solid ${colorOf(c.color)}` }}>
+          <${Tag} color=${colorOf(c.color)}>${c.tag}<//>
+          <div style=${{ marginTop: 6, font: `600 21px/1.2 ${HEAD}`, color: INK }}>${c.title}</div>
+          <div style=${{ marginTop: 4, font: `400 16px/1.35 ${BODY}`, color: MUTED }}>${c.text}</div>
+        <//>`)}
+      </div>`}
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+// ---------- 11. karar talebi ----------// statement, askTitle, asks: [...], checkTitle, checks: [...], next
 function EAsk({ s, meta, index, total }) {
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
@@ -979,8 +1116,8 @@ function EClosing({ s, meta }) {
 }
 
 const TYPES = {
-  "e-cover": ECover, "e-summary": ESummary, "e-table": ETable, "e-gap": EGap, "e-bridge": EBridge, "e-cards": ECards,
-  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-stats": EStats, "e-duty": EDuty, "e-price": EPrice, "e-engine": EEngine, "e-timeline": ETimeline, "e-ask": EAsk, "e-closing": EClosing,
+  "e-cover": ECover, "e-summary": ESummary, "e-table": ETable, "e-gap": EGap, "e-gap2": EGap2, "e-bridge": EBridge, "e-cards": ECards,
+  "e-model": EModel, "e-compare": ECompare, "e-shift": EShift, "e-decline": EDecline, "e-channel": EChannel, "e-stats": EStats, "e-duty": EDuty, "e-price": EPrice, "e-engine": EEngine, "e-timeline": ETimeline, "e-path": EPath, "e-ask": EAsk, "e-closing": EClosing,
 };
 // her slayta destedeki bolum listesini tasi (bolum seridi icin)
 registerSlideTypes(Object.fromEntries(Object.entries(TYPES).map(([k, Comp]) => [k, (props) => html`<${Comp} ...${props} s=${{ ...props.s, _sections: props.meta?.sections }} />`])));
