@@ -313,6 +313,34 @@ function EBridge({ s, meta, index, total }) {
 
 // ---------- 6. kartlar: garanti, risk, yonetisim vb. ----------
 // cards: [{ tag, value, label, points: [...], color }], columns, intro
+// kucuk pazar payi grafigi (kart yaninda): series [{ values, color, label }], ticks: ["0", "6m", ...], caption
+function MiniChart({ c, delay = 30 }) {
+  const frame = useCurrentFrame();
+  const p = interpolate(frame - delay, [0, 60], [0, 1], ease);
+  const W = 480, H = 230, n = (c.ticks || []).length || (c.series[0].values.length);
+  const X = (i) => 20 + (i * (W - 40)) / (n - 1);
+  const Y = (v) => 14 + (1 - v / 105) * (H - 28);
+  return html`<div>
+    <svg viewBox=${`0 0 ${W} ${H}`} width="100%" style=${{ overflow: "visible", display: "block" }}>
+      <defs><clipPath id="miniClip"><rect x="0" y="-10" width=${W * p} height=${H + 20} /></clipPath></defs>
+      <line x1="20" y1=${H - 4} x2=${W - 20} y2=${H - 4} stroke=${LINE} strokeWidth="2" />
+      <line x1="20" y1="6" x2="20" y2=${H - 4} stroke=${LINE} strokeWidth="2" />
+      <g clipPath="url(#miniClip)">
+        ${c.series.map((s, k) => html`<g key=${k}>
+          <path d=${"M" + s.values.map((v, i) => `${X(i)},${Y(v)}`).join(" L")} fill="none" stroke=${colorOf(s.color)} strokeWidth="4" strokeLinejoin="round" />
+          ${s.values.map((v, i) => html`<circle key=${i} cx=${X(i)} cy=${Y(v)} r="5" fill="#fff" stroke=${colorOf(s.color)} strokeWidth="3" />`)}
+        </g>`)}
+      </g>
+    </svg>
+    <div style=${{ display: "flex", justifyContent: "space-between", padding: "6px 8px 0 8px", font: `500 14px/1 ${BODY}`, color: MUTED }}>
+      ${(c.ticks || []).map((t, i) => html`<span key=${i}>${t}</span>`)}
+    </div>
+    <div style=${{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+      ${c.series.map((s, k) => html`<div key=${k} style=${{ display: "flex", alignItems: "center", gap: 10, font: `600 16px/1.2 ${BODY}`, color: colorOf(s.color) }}>
+        <span style=${{ width: 24, height: 4, borderRadius: 2, background: colorOf(s.color) }} />${s.label}</div>`)}
+    </div>
+  </div>`;
+}
 function ECards({ s, meta, index, total }) {
   const cards = s.cards || [];
   const cols = s.columns || Math.min(cards.length, 3);
@@ -322,7 +350,7 @@ function ECards({ s, meta, index, total }) {
   return html`<${Frame} dark=${false}>
     <div style=${pad}>
       <${Head} s=${s} />
-      <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 205, bottom: s.note ? 70 : 0, display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridAutoRows: "1fr", gap: 26 }}>
+      <div style=${{ position: "absolute", left: 0, right: s.chart ? 600 : 0, top: s.sub ? 255 : 205, bottom: s.note ? 70 : 0, display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridAutoRows: "1fr", gap: s.chart ? 20 : 26 }}>
         ${cards.map((c, i) => {
           const col = colorOf(c.color);
           const d = 14 + i * 7;
@@ -336,6 +364,11 @@ function ECards({ s, meta, index, total }) {
           <//>`;
         })}
       </div>
+      ${s.chart && html`<${Rise} delay=${24} style=${{ ...card, position: "absolute", right: 0, width: 570, top: s.sub ? 255 : 205, bottom: s.note ? 70 : 0, padding: "22px 26px", display: "flex", flexDirection: "column" }}>
+        <${Tag} color=${MUTED}>${s.chart.title}<//>
+        <div style=${{ marginTop: 14, flex: 1 }}><${MiniChart} c=${s.chart} /></div>
+        ${s.chart.caption && html`<div style=${{ marginTop: 10, font: `400 17px/1.4 ${BODY}`, color: MUTED }}>${s.chart.caption}</div>`}
+      <//>`}
       <${Note} s=${s} delay=${70} />
     </div>
     <${Footer} index=${index} total=${total} title=${meta.title} />
@@ -423,10 +456,10 @@ function ECompare({ s, meta, index, total }) {
           </div>
           <div style=${{ position: "absolute", left: 0, right: 0, top: hasVerdict ? 146 : 96, bottom: 0, display: "flex", flexDirection: "column" }}>
           ${rows.map((r, i) => html`<${Rise} key=${i} delay=${26 + i * 6} y=${10} style=${{ flex: 1, position: "relative", display: "grid", gridTemplateColumns: grid, alignItems: "center", borderBottom: `1px solid ${LINE}` }}>
-            <div style=${{ font: `600 24px/1.25 ${HEAD}`, color: INK, paddingRight: 20 }}>${r.label}</div>
+            <div style=${{ font: `600 ${rows.length > 8 ? 20 : 24}px/1.2 ${HEAD}`, color: INK, paddingRight: 20 }}>${r.label}</div>
             ${(r.cells || []).map((c, j) => html`<div key=${j} style=${{ padding: "0 24px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-              <span style=${{ width: 16, height: 16, borderRadius: "50%", background: dot[c.r] || MUTED, flexShrink: 0, marginTop: 6 }} />
-              <span style=${{ font: `${opts[j]?.accent && c.r === "good" ? 600 : 400} ${s.note ? 19 : 21}px/1.32 ${BODY}`, color: opts[j]?.accent && c.r === "good" ? "#00875A" : "#2E3440" }}>${c.t}</span>
+              <span style=${{ width: rows.length > 8 ? 13 : 16, height: rows.length > 8 ? 13 : 16, borderRadius: "50%", background: dot[c.r] || MUTED, flexShrink: 0, marginTop: rows.length > 8 ? 5 : 6 }} />
+              <span style=${{ font: `${opts[j]?.accent && c.r === "good" ? 600 : 400} ${rows.length > 8 ? 18 : s.note ? 19 : 21}px/1.28 ${BODY}`, color: opts[j]?.accent && c.r === "good" ? "#00875A" : "#2E3440" }}>${c.t}</span>
             </div>`)}
           <//>`)}
           </div>
@@ -542,6 +575,9 @@ function EDecline({ s, meta, index, total }) {
           </svg>
           ${series.map((x, k) => x.pts.map((q, i) => html`<div key=${k + "-" + i} style=${{ position: "absolute", left: `${((i + 0.5) * 100) / n}%`, top: q[1] - 9, width: 18, height: 18, marginLeft: -9, borderRadius: "50%",
             background: "#fff", border: `4px solid ${dotCol(x, i)}`, opacity: interpolate(frame - 24 - i * 13, [0, 10], [0, 1], ease) }} />`))}
+          ${s.yLabel && html`<div style=${{ position: "absolute", left: -58, top: H / 2, transform: "translate(-50%, -50%) rotate(-90deg)", font: `500 15px/1 ${BODY}`, color: MUTED, whiteSpace: "nowrap" }}>${s.yLabel}</div>`}
+          ${s.yLabel && html`<div style=${{ position: "absolute", left: -18, top: 0, bottom: 0, width: 2, background: LINE }} />`}
+          ${s.xLabel && html`<div style=${{ position: "absolute", right: 0, top: H + 6, font: `500 15px/1 ${BODY}`, color: MUTED }}>${s.xLabel}</div>`}
           ${!s.legend && series.filter((x) => x.label).map((x, k) => html`<div key=${"l" + k} style=${{ position: "absolute", right: 0, top: x.pts[x.pts.length - 1][1] + (x.labelBelow ? 16 : -40),
             font: `600 20px/1.2 ${BODY}`, color: x.col, whiteSpace: "nowrap", opacity: interpolate(frame - 90, [0, 14], [0, 1], ease) }}>${x.label}</div>`)}
         </div>
@@ -653,7 +689,9 @@ function EStats({ s, meta, index, total }) {
       <div style=${{ position: "absolute", left: 0, right: 0, top: s.sub ? 255 : 200, display: "grid", gridTemplateColumns: `repeat(${stats.length}, 1fr)`, gap: 24 }}>
         ${stats.map((st, i) => {
           const col = colorOf(st.color);
-          return html`<${Rise} key=${i} delay=${12 + i * 7} style=${{ borderTop: `4px solid ${col}`, paddingTop: 16 }}>
+          const grouped = stats.some((x) => x.group);
+          return html`<${Rise} key=${i} delay=${12 + i * 7} style=${{ borderTop: `4px solid ${col}`, paddingTop: 16, marginLeft: grouped && st.group && i > 0 ? 36 : 0, borderLeft: grouped && st.group && i > 0 ? `1px dashed ${LINE}` : "none", paddingLeft: grouped && st.group && i > 0 ? 36 : 0 }}>
+            ${grouped && html`<div style=${{ height: 26, font: `600 16px/1 ${BODY}`, letterSpacing: "0.14em", textTransform: "uppercase", color: MUTED }}>${st.group || ""}</div>`}
             <${Val} v=${st.value} delay=${18 + i * 7} style=${{ display: "block", font: `600 78px/1 ${HEAD}`, letterSpacing: "-0.03em", color: col }} />
             <div style=${{ marginTop: 10, font: `500 21px/1.32 ${BODY}`, color: INK }}>${st.label}</div>
           <//>`;
@@ -789,6 +827,16 @@ function EPrice({ s, meta, index, total }) {
           ${s.delta && html`<${Rise} delay=${60} style=${{ ...card, padding: "22px 30px", borderLeft: `6px solid ${colorOf(s.delta.color || "red")}`, display: "flex", alignItems: "center", gap: 26 }}>
             <${Val} v=${s.delta.value} delay=${66} style=${{ font: `600 64px/1 ${HEAD}`, letterSpacing: "-0.03em", color: colorOf(s.delta.color || "red"), flexShrink: 0 }} />
             <div style=${{ font: `500 21px/1.4 ${BODY}`, color: INK }}>${s.delta.text}</div>
+          <//>`}
+          ${s.table && html`<${Rise} delay=${44} style=${{ ...card, padding: "16px 24px" }}>
+            <${Tag} color=${MUTED}>${s.table.title}<//>
+            <div style=${{ marginTop: 8, display: "grid", gridTemplateColumns: `1.7fr repeat(${s.table.columns.length}, 1fr)`, font: `600 15px/1.2 ${BODY}`, color: MUTED, paddingBottom: 6, borderBottom: `2px solid ${INK}` }}>
+              <span />${s.table.columns.map((c, j) => html`<span key=${j} style=${{ textAlign: "right" }}>${c}</span>`)}
+            </div>
+            ${s.table.rows.map((r, i) => html`<div key=${i} style=${{ display: "grid", gridTemplateColumns: `1.7fr repeat(${s.table.columns.length}, 1fr)`, padding: r.hl ? "8px 8px" : "6px 0", margin: r.hl ? "4px -8px 0" : 0, borderRadius: 8, background: r.hl ? "rgba(20,50,255,.07)" : "transparent", borderBottom: r.hl ? "none" : `1px solid ${LINE}`,
+                font: `${r.hl ? 600 : 400} 17px/1.25 ${BODY}`, color: r.hl ? BLUE : r.sub ? MUTED : INK, fontVariantNumeric: "tabular-nums" }}>
+              <span>${r.label}</span>${r.values.map((v, j) => html`<span key=${j} style=${{ textAlign: "right" }}>${v}</span>`)}
+            </div>`)}
           <//>`}
           ${(s.steps || []).map((st, i) => html`<${Rise} key=${i} delay=${40 + i * 8} style=${{ ...card, padding: "18px 26px" }}>
             <${Tag} color=${colorOf(st.color || "navy")}>${st.tag}<//>

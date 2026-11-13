@@ -6,7 +6,7 @@ import { Player } from "@remotion/player";
 import { SlideComposition, FPS, WIDTH, HEIGHT, DURATION } from "./slides.js";
 import "./corridor.js?v=20261029k"; // "c-..." slayt tiplerini ekler; ?v= tarayici onbellegini asar, corridor.js degisince artirin
 import "./night.js?v=20261104b"; // "n-..." sinematik slayt tipleri; night.js degisince ?v= artirin
-import "./executive.js?v=20261113c"; // "e-..." slayt tipleri (executive stili); executive.js degisince ?v= artirin
+import "./executive.js?v=20261113e"; // "e-..." slayt tipleri (executive stili); executive.js degisince ?v= artirin
 
 const data = JSON.parse(document.getElementById("deck-data").textContent);
 const slides = data.slides || [];
