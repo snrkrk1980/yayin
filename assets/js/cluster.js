@@ -837,4 +837,80 @@ function CFacts({ s, meta, index, total }) {
   <//>`;
 }
 
-registerSlideTypes({ "c-territory": CTerritory, "c-list": CList, "c-facts": CFacts, "c-hero": CHero, "c-support": CSupport, "c-moves": CMoves, "c-blocks": CBlocks, "c-onepage": COnePage, "c-bridge": CBridge, "c-actions": CActions, "c-needs": CNeeds, "c-commit": CCommit });
+// ---------- c-pillar: stratejik sutun (baslik = tercih, 3 hedef, 3 hamle, 4 bolgelik odak seridi) ----------
+// kpis: [{value, label}] ; moves: [{title, text}] ; focus: [{r, t}] (r = REGION anahtari) ; owners
+function CPillar({ s, meta, index, total }) {
+  const kpis = s.kpis || [], moves = s.moves || [], focus = s.focus || [];
+  const line = useT(30, 40);
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}><${THead} s=${{ ...s, titleWidth: s.titleWidth || 1100 }} size=${s.titleSize || 50} /></div>
+    <div style=${{ position: "absolute", right: 120, top: 112, display: "flex", gap: 14 }}>
+      ${kpis.map((k, i) => html`<${Pop} key=${i} delay=${18 + i * 7} y=${-14} style=${{ ...glass, width: 176, padding: "14px 16px", borderRadius: 16 }}>
+        <div style=${{ font: `700 38px/1 ${HEAD}`, letterSpacing: "-0.03em", color: C.green }}>${k.value}</div>
+        <div style=${{ marginTop: 8, font: `500 16px/1.3 ${BODY}`, color: muted }}>${k.label}</div>
+      <//>`)}
+    </div>
+    <div style=${{ position: "absolute", left: 120, right: 120, top: 300, display: "grid", gridTemplateColumns: `repeat(${moves.length}, 1fr)`, gap: 24 }}>
+      ${moves.map((mv, i) => html`<${Pop} key=${i} delay=${26 + i * 9} y=${30} style=${{ ...glass, padding: "26px 30px 28px", position: "relative", overflow: "hidden", minHeight: 250 }}>
+        <div style=${{ position: "absolute", left: 0, top: 0, right: 0, height: 4, background: `linear-gradient(90deg, ${C.green}, ${C.greenLight}55)` }} />
+        <div style=${{ font: `700 54px/1 ${HEAD}`, ...gradText(`linear-gradient(120deg, ${C.green}, ${C.greenLight})`) }}>${String(i + 1).padStart(2, "0")}</div>
+        <div style=${{ marginTop: 16, font: `600 31px/1.15 ${HEAD}`, letterSpacing: "-0.015em" }}>${mv.title}</div>
+        <div style=${{ marginTop: 12, font: `400 21px/1.45 ${BODY}`, color: "rgba(255,255,255,.8)" }}>${mv.text}</div>
+      <//>`)}
+    </div>
+    <${Fade} delay=${44} y=${6} style=${{ position: "absolute", left: 120, top: 612 }}><${SEC} text=${s.focusLabel || "Market focus"} color=${C.green} style=${{ fontSize: 15 }} /><//>
+    <div style=${{ position: "absolute", left: 120, top: 640, height: 2, width: (1920 - 240) * line, background: `linear-gradient(90deg, ${C.green}, transparent)` }} />
+    <div style=${{ position: "absolute", left: 120, right: 120, top: 664, display: "grid", gridTemplateColumns: `repeat(${focus.length}, 1fr)`, gap: 24 }}>
+      ${focus.map((f, i) => {
+        const col = REGION[f.r] || NEUTRAL;
+        return html`<${Pop} key=${i} delay=${50 + i * 7} y=${20} style=${{ borderTop: `4px solid ${col}`, paddingTop: 16 }}>
+          <div style=${{ font: `600 24px/1 ${HEAD}`, color: col }}>${f.r}</div>
+          <div style=${{ marginTop: 12, font: `400 20px/1.45 ${BODY}`, color: "rgba(255,255,255,.86)" }}>${f.t}</div>
+        <//>`;
+      })}
+    </div>
+    ${s.owners && html`<${Fade} delay=${80} style=${{ position: "absolute", left: 120, right: 120, bottom: 104, font: `400 16px/1.35 ${BODY}`, color: "rgba(255,255,255,.5)" }}>${s.owners}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+// ---------- c-roadmap: 2027 -> 2029 yol haritasi (fazlar + 2029 taahhutleri + ana risk) ----------
+// phases: [{when, title, items: [..]}] ; commitments: [{t, owner}] ; risk: {label, text}
+function CRoadmap({ s, meta, index, total }) {
+  const ph = s.phases || [], cm = s.commitments || [];
+  const line = interpolate(useCurrentFrame(), [10, 70], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const W = 1920 - 240;
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}><${THead} s=${s} size=${56} /></div>
+    <div style=${{ position: "absolute", left: 120, top: 286, width: W, height: 4, borderRadius: 4, background: "rgba(255,255,255,.12)" }} />
+    <div style=${{ position: "absolute", left: 120, top: 286, width: W * line, height: 4, borderRadius: 4, background: `linear-gradient(90deg, rgba(255,255,255,.5), ${C.green})`, boxShadow: `0 0 16px ${C.green}` }} />
+    <div style=${{ position: "absolute", left: 120, right: 120, top: 270, display: "grid", gridTemplateColumns: "1fr 1fr 1.6fr", gap: 26 }}>
+      ${ph.map((p, i) => {
+        const last = i === ph.length - 1;
+        const on = interpolate(line, [i / ph.length, i / ph.length + 0.05], [0, 1], clamp);
+        return html`<div key=${i}>
+          <div style=${{ width: 36, height: 36, borderRadius: "50%", background: on > 0.5 ? (last ? C.green : "#fff") : "rgba(255,255,255,.2)", boxShadow: `0 0 ${18 * on}px ${C.green}`, border: "6px solid #0b0f15" }} />
+          <${Pop} delay=${20 + i * 14} y=${24} style=${{ ...glass, marginTop: 22, padding: "22px 26px", minHeight: last ? 470 : 300, border: last ? `1px solid ${C.green}88` : glass.border }}>
+            <div style=${{ font: `600 17px/1 ${HEAD}`, letterSpacing: "0.14em", textTransform: "uppercase", color: last ? C.green : muted }}>${p.when}</div>
+            <div style=${{ marginTop: 10, font: `600 30px/1.15 ${HEAD}` }}>${p.title}</div>
+            ${!last && (p.items || []).map((t, k) => html`<div key=${k} style=${{ marginTop: 14, display: "flex", gap: 12, font: `400 20px/1.4 ${BODY}`, color: "rgba(255,255,255,.84)" }}>
+              <i style=${{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,.6)", marginTop: 10, flexShrink: 0 }} /><span>${t}</span></div>`)}
+            ${last && cm.map((c, k) => html`<${Pop} key=${k} delay=${50 + k * 8} y=${14} style=${{ marginTop: k ? 12 : 18, display: "grid", gridTemplateColumns: "44px 1fr", gap: 8, alignItems: "baseline",
+                paddingBottom: 12, borderBottom: k < cm.length - 1 ? "1px solid rgba(255,255,255,.08)" : "none" }}>
+              <span style=${{ font: `700 26px/1 ${HEAD}`, color: C.green }}>${k + 1}</span>
+              <div><div style=${{ font: `600 22px/1.3 ${HEAD}` }}>${c.t}</div>${c.sub && html`<div style=${{ marginTop: 4, font: `400 17px/1.35 ${BODY}`, color: muted }}>${c.sub}</div>`}</div>
+            <//>`)}
+          <//>
+        </div>`;
+      })}
+    </div>
+    ${s.risk && html`<${Pop} delay=${90} y=${16} style=${{ position: "absolute", left: 120, width: (W - 52) * (2 / 3.6) + 26, top: 690, padding: "18px 24px", borderRadius: 16, background: `${C.amber}14`, border: `1px solid ${C.amber}66` }}>
+      <div style=${{ font: `600 15px/1 ${HEAD}`, letterSpacing: "0.14em", textTransform: "uppercase", color: C.amber }}>${s.risk.label || "Main risk"}</div>
+      <div style=${{ marginTop: 10, font: `400 20px/1.45 ${BODY}`, color: "rgba(255,255,255,.88)" }}>${s.risk.text}</div>
+    <//>`}
+    ${s.note && html`<${Fade} delay=${100} style=${{ position: "absolute", left: 120, right: 120, bottom: 104, font: `400 15px/1.35 ${BODY}`, color: "rgba(255,255,255,.45)" }}>${s.note}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+registerSlideTypes({ "c-pillar": CPillar, "c-roadmap": CRoadmap, "c-territory": CTerritory, "c-list": CList, "c-facts": CFacts, "c-hero": CHero, "c-support": CSupport, "c-moves": CMoves, "c-blocks": CBlocks, "c-onepage": COnePage, "c-bridge": CBridge, "c-actions": CActions, "c-needs": CNeeds, "c-commit": CCommit });
