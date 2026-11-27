@@ -609,7 +609,7 @@ function CSupport({ s, meta, index, total }) {
             <div style=${{ marginTop: 5, font: `600 18px/1.25 ${HEAD}` }}>${b.need}</div>
           </div>
           <div style=${{ position: "relative", marginTop: 12 }}>
-            <${SEC} text="How we close the gap" />
+            <${SEC} text=${s.itemsLabel || "How we close the gap"} />
             ${(b.items || []).map((it, k) => html`<div key=${k} style=${{ marginTop: 8, opacity: useT(d + 20 + k * 5, 14) }}>
               <${Chips} list=${it.r} /><div style=${{ font: `400 15px/1.3 ${BODY}`, color: "rgba(255,255,255,.88)" }}><${Rich} text=${it.t} /></div></div>`)}
           </div>
@@ -692,4 +692,149 @@ function CMoves({ s, meta, index, total }) {
   <//>`;
 }
 
-registerSlideTypes({ "c-hero": CHero, "c-support": CSupport, "c-moves": CMoves, "c-blocks": CBlocks, "c-onepage": COnePage, "c-bridge": CBridge, "c-actions": CActions, "c-needs": CNeeds, "c-commit": CCommit });
+// ---------- c-territory: hareketli bolge haritasi + sayaclar ("wider than the Moon" cevabi) ----------
+// Harita: world-atlas (Natural Earth 110m) cizilir; bolgeler sirayla kendi renginde yanar, Dakar-Kamcatka yayi cizilir.
+// groups: [{name, color, ids: ["818", ...], names: ["Somaliland"]}] ; stats: [{value, decimals, prefix, suffix, label, sub}] ; arc: {from:[lon,lat], to:[lon,lat], label}
+let geoLib = null;
+function useWorld() {
+  const [w, setW] = React.useState(geoLib);
+  React.useEffect(() => {
+    if (geoLib) return;
+    let live = true;
+    (async () => {
+      const [d3, tj, topo] = await Promise.all([
+        import("https://esm.sh/d3-geo@3.1.1"), import("https://esm.sh/topojson-client@3.1.0"),
+        fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json").then((r) => r.json()),
+      ]);
+      geoLib = { d3, features: tj.feature(topo, topo.objects.countries).features };
+      if (live) setW(geoLib);
+    })().catch((e) => console.error("harita", e));
+    return () => { live = false; };
+  }, []);
+  return w;
+}
+function CTerritory({ s, meta, index, total }) {
+  const frame = useCurrentFrame();
+  const world = useWorld();
+  const MW = 1160, MH = 600;
+  const groups = s.groups || [];
+  const geo = React.useMemo(() => {
+    if (!world) return null;
+    const { d3, features } = world;
+    const groupOf = (f) => groups.findIndex((g) => (g.ids || []).includes(String(f.id)) || (g.names || []).includes(f.properties.name));
+    const inTerr = features.filter((f) => groupOf(f) >= 0);
+    const proj = d3.geoNaturalEarth1().rotate([-62, 0]).fitExtent([[10, 10], [MW - 10, MH - 10]], { type: "FeatureCollection", features: inTerr });
+    const path = d3.geoPath(proj);
+    const shapes = features.map((f) => ({ d: path(f), g: groupOf(f) })).filter((x) => x.d);
+    const arc = s.arc && (() => { const a = proj(s.arc.from), b = proj(s.arc.to); const c = [(a[0] + b[0]) / 2, Math.min(a[1], b[1]) - (s.arc.lift || 110)]; return { d: `M${a[0]},${a[1]} Q${c[0]},${c[1]} ${b[0]},${b[1]}`, a, b, c }; })();
+    const pins = (s.pins || []).map((p) => ({ ...p, xy: proj(p.at) }));
+    return { shapes, arc, pins };
+  }, [world]);
+  const mapIn = interpolate(frame, [4, 30], [0, 1], ease);
+  const arcP = interpolate(frame, [96, 150], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const stats = s.stats || [];
+  const pinP = (s.pins || []).map((_, k) => useSpring(70 + k * 6, { damping: 14, stiffness: 140, mass: 0.6 })); // kancalar harita yuklenmeden once de ayni sirada
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}><${THead} s=${s} size=${56} /></div>
+    <div style=${{ position: "absolute", left: 80, top: 262, width: MW, height: MH, opacity: mapIn }}>
+      ${!geo && html`<div style=${{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: muted, font: `500 22px ${BODY}` }}>…</div>`}
+      ${geo && html`<svg width=${MW} height=${MH} viewBox=${`0 0 ${MW} ${MH}`} style=${{ overflow: "visible" }}>
+        <defs><filter id="terrGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+        ${geo.shapes.map((x, i) => {
+          if (x.g < 0) return html`<path key=${i} d=${x.d} fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.10)" strokeWidth="0.6" />`;
+          const g = groups[x.g];
+          const p = interpolate(frame, [22 + x.g * 13, 40 + x.g * 13], [0, 1], ease);
+          return html`<path key=${i} d=${x.d} fill=${g.color} fillOpacity=${(g.dim ? 0.42 : 0.8) * p + 0.06} stroke="rgba(10,14,20,.85)" strokeWidth="0.7" />`;
+        })}
+        ${geo.arc && arcP > 0 && html`<g>
+          <path d=${geo.arc.d} fill="none" stroke="#fff" strokeWidth="2.5" strokeDasharray="6 7" pathLength="1000" strokeDashoffset=${0} style=${{ strokeDasharray: `${arcP * 1000} 1000` }} filter="url(#terrGlow)" opacity="0.95" />
+          ${[geo.arc.a, geo.arc.b].map((pt, k) => html`<g key=${k} opacity=${k === 0 ? 1 : arcP > 0.98 ? 1 : 0}>
+            <circle cx=${pt[0]} cy=${pt[1]} r=${7 + 5 * Math.abs(Math.sin(frame / 12))} fill="none" stroke="#fff" strokeOpacity="0.5" />
+            <circle cx=${pt[0]} cy=${pt[1]} r="5" fill="#fff" />
+          </g>`)}
+        </g>`}
+        ${geo.pins.map((p, k) => {
+          const pp = pinP[k];
+          return html`<g key=${k} opacity=${Math.min(1, pp)} transform=${`translate(${p.xy[0]},${p.xy[1]})`}>
+            <circle r="4" fill="#fff" />
+            <text x=${p.dx ?? 10} y=${p.dy ?? -8} textAnchor=${p.anchor || "start"} style=${{ font: `600 17px ${HEAD}`, fill: "#fff", paintOrder: "stroke", stroke: "rgba(8,12,18,.85)", strokeWidth: 5 }}>${p.label}</text>
+          </g>`;
+        })}
+      </svg>`}
+      ${geo && geo.arc && s.arc.label && html`<div style=${{ position: "absolute", left: geo.arc.c[0], top: geo.arc.c[1] / 2 + Math.min(geo.arc.a[1], geo.arc.b[1]) / 2 - 22, transform: "translateX(-50%)",
+        opacity: interpolate(frame, [140, 160], [0, 1], clamp), padding: "8px 16px", borderRadius: 999, background: "rgba(8,12,18,.85)", border: "1px solid rgba(255,255,255,.3)",
+        font: `600 20px/1 ${HEAD}`, whiteSpace: "nowrap" }}>${s.arc.label}</div>`}
+      <div style=${{ position: "absolute", left: 20, top: MH + 18, display: "flex", gap: 22, flexWrap: "wrap" }}>
+        ${groups.filter((g) => !g.hideLegend).map((g, i) => html`<${Fade} key=${i} delay=${24 + i * 13} y=${6} style=${{ display: "flex", alignItems: "center", gap: 9, font: `500 18px/1 ${HEAD}`, color: "rgba(255,255,255,.8)" }}>
+          <i style=${{ width: 14, height: 14, borderRadius: 4, background: g.color, opacity: g.dim ? 0.45 : 1 }} />${g.name}<//>`)}
+      </div>
+    </div>
+    <div style=${{ position: "absolute", left: 1300, top: 262, width: 520, display: "flex", flexDirection: "column", gap: 22 }}>
+      ${stats.map((st, i) => html`<${Pop} key=${i} delay=${30 + i * 12} x=${40} y=${0} style=${{ ...glass, padding: "18px 26px", position: "relative", overflow: "hidden" }}>
+        <div style=${{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: st.color || C.green }} />
+        <div style=${{ display: "flex", alignItems: "baseline", gap: 14 }}>
+          <${Counter} to=${st.value} decimals=${st.decimals || 0} prefix=${st.prefix || ""} suffix=${st.suffix || ""} delay=${34 + i * 12} dur=${50} style=${{ font: `700 52px/1 ${HEAD}`, letterSpacing: "-0.03em", color: st.color || "#fff" }} />
+          <div style=${{ font: `600 22px/1.15 ${HEAD}` }}>${st.label}</div>
+        </div>
+        ${st.sub && html`<div style=${{ marginTop: 6, font: `400 17px/1.35 ${BODY}`, color: muted }}>${st.sub}</div>`}
+      <//>`)}
+    </div>
+    ${s.punch && html`<${Pop} delay=${165} y=${20} style=${{ position: "absolute", left: 1300, width: 520, bottom: 120, padding: "18px 26px", borderRadius: 18,
+      background: `linear-gradient(120deg, ${C.green}26, transparent)`, border: `1px solid ${C.green}66`, font: `600 25px/1.3 ${HEAD}` }}>${s.punch}<//>`}
+    ${s.note && html`<${Fade} delay=${90} style=${{ position: "absolute", left: 120, right: 120, bottom: 104, font: `400 15px/1.35 ${BODY}`, color: "rgba(255,255,255,.45)" }}>${s.note}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+// ---------- c-list: "home of the original innovations" kartlari + bir iglene satiri ----------
+// items: [{t, where, when, r}] (r = bolge etiketi, renk REGION'dan) ; jab: string ; columns
+function CList({ s, meta, index, total }) {
+  const items = s.items || [];
+  const cols = s.columns || 4;
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}><${THead} s=${s} size=${56} /></div>
+    ${s.jab && html`<${Fade} delay=${16} y=${10} style=${{ position: "absolute", left: 120, top: 236, right: 120, font: `italic 400 28px/1.35 ${BODY}`, color: "rgba(255,255,255,.85)" }}>${s.jab}<//>`}
+    <div style=${{ position: "absolute", left: 120, right: 120, top: s.jab ? 320 : 280, bottom: s.note ? 120 : 90, display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridAutoRows: "1fr", gap: 18 }}>
+      ${items.map((it, i) => {
+        const col = REGION[it.r] || NEUTRAL;
+        return html`<${Pop} key=${i} delay=${24 + i * 6} y=${26} style=${{ ...glass, borderRadius: 16, padding: "18px 22px", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div style=${{ position: "absolute", left: 0, top: 0, right: 0, height: 3, background: col }} />
+          <div style=${{ font: `600 27px/1.15 ${HEAD}`, letterSpacing: "-0.01em" }}>${it.t}</div>
+          <div style=${{ marginTop: 10 }}>
+            <div style=${{ font: `500 18px/1.3 ${BODY}`, color: "rgba(255,255,255,.8)" }}>${it.where}</div>
+            ${it.when && html`<div style=${{ marginTop: 4, font: `600 15px/1 ${HEAD}`, letterSpacing: "0.12em", textTransform: "uppercase", color: col }}>${it.when}</div>`}
+          </div>
+        <//>`;
+      })}
+    </div>
+    ${s.note && html`<${Fade} delay=${100} style=${{ position: "absolute", left: 120, right: 120, bottom: 104, font: `400 15px/1.35 ${BODY}`, color: "rgba(255,255,255,.45)" }}>${s.note}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+// ---------- c-facts: "things the playbook doesn't tell you": buyuk rakam + espri, sirayla ----------
+// facts: [{big, unit, text, r}] ; columns
+function CFacts({ s, meta, index, total }) {
+  const facts = s.facts || [];
+  const cols = s.columns || 3;
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}><${THead} s=${s} size=${56} /></div>
+    <div style=${{ position: "absolute", left: 120, right: 120, top: 280, bottom: s.note ? 120 : 90, display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gridAutoRows: "1fr", gap: 22 }}>
+      ${facts.map((f, i) => {
+        const col = REGION[f.r] || NEUTRAL;
+        return html`<${Pop} key=${i} delay=${20 + i * 12} y=${30} style=${{ ...glass, padding: "24px 28px", position: "relative", overflow: "hidden" }}>
+          <div style=${{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: col }} />
+          <div style=${{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+            <span style=${{ font: `700 ${f.size || 50}px/1 ${HEAD}`, letterSpacing: "-0.03em", color: col }}>${f.big}</span>
+            ${f.unit && html`<span style=${{ font: `600 22px/1.1 ${HEAD}` }}>${f.unit}</span>`}
+          </div>
+          <div style=${{ marginTop: 14, font: `400 20px/1.42 ${BODY}`, color: "rgba(255,255,255,.86)" }}>${f.text}</div>
+        <//>`;
+      })}
+    </div>
+    ${s.note && html`<${Fade} delay=${100} style=${{ position: "absolute", left: 120, right: 120, bottom: 104, font: `400 15px/1.35 ${BODY}`, color: "rgba(255,255,255,.45)" }}>${s.note}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+registerSlideTypes({ "c-territory": CTerritory, "c-list": CList, "c-facts": CFacts, "c-hero": CHero, "c-support": CSupport, "c-moves": CMoves, "c-blocks": CBlocks, "c-onepage": COnePage, "c-bridge": CBridge, "c-actions": CActions, "c-needs": CNeeds, "c-commit": CCommit });
