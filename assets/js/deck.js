@@ -7,7 +7,7 @@ import { SlideComposition, FPS, WIDTH, HEIGHT, DURATION } from "./slides.js";
 import "./corridor.js?v=20261029k"; // "c-..." slayt tiplerini ekler; ?v= tarayici onbellegini asar, corridor.js degisince artirin
 import "./night.js?v=20261104b"; // "n-..." sinematik slayt tipleri; night.js degisince ?v= artirin
 import "./executive.js?v=20261125c"; // "e-..." slayt tipleri (executive stili); executive.js degisince ?v= artirin
-import "./cluster.js?v=20261127i"; // "c-onepage, c-bridge, c-actions, c-needs, c-commit" (PEM cluster plan formati); cluster.js degisince ?v= artirin
+import "./cluster.js?v=20261127j"; // "c-onepage, c-bridge, c-actions, c-needs, c-commit" (PEM cluster plan formati); cluster.js degisince ?v= artirin
 import "./shelf.js?v=20261125e"; // "s-..." slayt tipleri (shelf stili, out-of-the-box urunler); shelf.js degisince ?v= artirin
 
 const data = JSON.parse(document.getElementById("deck-data").textContent);

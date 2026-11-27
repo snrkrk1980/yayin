@@ -913,4 +913,90 @@ function CRoadmap({ s, meta, index, total }) {
   <//>`;
 }
 
-registerSlideTypes({ "c-pillar": CPillar, "c-roadmap": CRoadmap, "c-territory": CTerritory, "c-list": CList, "c-facts": CFacts, "c-hero": CHero, "c-support": CSupport, "c-moves": CMoves, "c-blocks": CBlocks, "c-onepage": COnePage, "c-bridge": CBridge, "c-actions": CActions, "c-needs": CNeeds, "c-commit": CCommit });
+// ---------- c-regions: dort bolge, durus + kumedeki rol + 3 oncelik ----------
+// regions: [{name, sub, color, posture, role, items: [..], foot}]
+function CRegions({ s, meta, index, total }) {
+  const rg = s.regions || [];
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}><${THead} s=${s} size=${56} /></div>
+    <div style=${{ position: "absolute", left: 120, right: 120, top: 286, bottom: s.note ? 150 : 120, display: "grid", gridTemplateColumns: `repeat(${rg.length}, 1fr)`, gap: 24 }}>
+      ${rg.map((r, i) => html`<${Pop} key=${i} delay=${14 + i * 9} y=${34} style=${{ ...glass, padding: "28px 28px 24px", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div style=${{ position: "absolute", left: 0, top: 0, right: 0, height: 5, background: r.color }} />
+        <div style=${{ font: `700 40px/1 ${HEAD}`, letterSpacing: "-0.02em", color: r.color }}>${r.name}</div>
+        <div style=${{ marginTop: 8, font: `400 17px/1.3 ${BODY}`, color: muted }}>${r.sub}</div>
+        <div style=${{ marginTop: 18, alignSelf: "flex-start", padding: "7px 14px", borderRadius: 999, border: `1px solid ${r.color}88`, background: `${r.color}1c`, color: r.color, font: `600 15px/1 ${HEAD}`, letterSpacing: "0.12em", textTransform: "uppercase" }}>${r.posture}</div>
+        <div style=${{ marginTop: 18, font: `600 26px/1.25 ${HEAD}` }}>${r.role}</div>
+        <div style=${{ marginTop: 18, height: 1, background: "rgba(255,255,255,.12)" }} />
+        ${(r.items || []).map((t, k) => html`<${Pop} key=${k} delay=${30 + i * 9 + k * 5} y=${10} style=${{ marginTop: 16, display: "flex", gap: 12, font: `400 19.5px/1.42 ${BODY}`, color: "rgba(255,255,255,.86)" }}>
+          <i style=${{ width: 8, height: 8, borderRadius: "50%", background: r.color, marginTop: 10, flexShrink: 0 }} /><span>${t}</span><//>`)}
+        ${r.foot && html`<div style=${{ marginTop: "auto", paddingTop: 14, font: `400 15px/1.35 ${BODY}`, color: "rgba(255,255,255,.5)" }}>${r.foot}</div>`}
+      <//>`)}
+    </div>
+    ${s.note && html`<${Fade} delay=${90} style=${{ position: "absolute", left: 120, right: 120, bottom: 104, font: `400 15px/1.35 ${BODY}`, color: "rgba(255,255,255,.45)" }}>${s.note}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+// ---------- c-forces: pazar baskisi -> nerede vurur -> bizim cevabimiz ----------
+// forces: [{name, detail, r: [..], answer}]
+function CForces({ s, meta, index, total }) {
+  const fs = s.forces || [];
+  const G = "minmax(0,1.35fr) 300px 60px minmax(0,1.15fr)";
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}><${THead} s=${s} size=${56} /></div>
+    <${Fade} delay=${10} y=${6} style=${{ position: "absolute", left: 120, right: 120, top: 270, display: "grid", gridTemplateColumns: G, gap: 22 }}>
+      <${SEC} text="Market force" /><${SEC} text="Where it hits" /><div /><${SEC} text="Our response" color=${C.green} />
+    <//>
+    <div style=${{ position: "absolute", left: 120, right: 120, top: 306, display: "flex", flexDirection: "column", gap: 16 }}>
+      ${fs.map((f, i) => {
+        const ar = useT(36 + i * 10, 24);
+        return html`<${Pop} key=${i} delay=${18 + i * 10} x=${-30} y=${0} style=${{ display: "grid", gridTemplateColumns: G, gap: 22, alignItems: "center",
+            ...glass, borderRadius: 16, padding: "20px 24px", background: i % 2 ? ROW_BG[1] : ROW_BG[0] }}>
+          <div><div style=${{ font: `600 27px/1.15 ${HEAD}` }}>${f.name}</div><div style=${{ marginTop: 8, font: `400 18px/1.4 ${BODY}`, color: muted }}>${f.detail}</div></div>
+          <${Chips} list=${f.r} />
+          <svg width="60" height="24" viewBox="0 0 60 24" style=${{ opacity: ar }}><path d=${`M2 12 H${2 + 46 * ar}`} stroke=${C.green} strokeWidth="3" strokeLinecap="round" /><path d="M44 4 L54 12 L44 20" fill="none" stroke=${C.green} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity=${ar > 0.9 ? 1 : 0} /></svg>
+          <div style=${{ borderLeft: `4px solid ${C.green}`, paddingLeft: 18, font: `500 22px/1.38 ${HEAD}` }}>${f.answer}</div>
+        <//>`;
+      })}
+    </div>
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+// ---------- c-enablers: yetkinlik olgunlugu (2026 -> 2027 ihtiyac) + enabler talepleri ----------
+// caps: [{name, level 0-3, status, need}] ; asks: [{name, when, ask}]
+function CEnablers({ s, meta, index, total }) {
+  const caps = s.caps || [], asks = s.asks || [];
+  const LV = s.levels || ["Not started", "Started", "Partly in place", "In place"];
+  return html`<${Frame} dark=${true}>
+    <div style=${pad}><${THead} s=${s} size=${56} /></div>
+    <${Fade} delay=${8} y=${6} style=${{ position: "absolute", left: 120, top: 270, width: 1060, display: "grid", gridTemplateColumns: "300px 300px 1fr", gap: 24 }}>
+      <${SEC} text="Capability" color=${C.green} /><${SEC} text="Where we are in 2026" /><${SEC} text="2027 need" color=${C.green} />
+    <//>
+    <div style=${{ position: "absolute", left: 120, top: 306, width: 1060, display: "flex", flexDirection: "column", gap: 12 }}>
+      ${caps.map((c, i) => html`<${Pop} key=${i} delay=${16 + i * 8} x=${-26} y=${0} style=${{ display: "grid", gridTemplateColumns: "300px 300px 1fr", gap: 24, alignItems: "center",
+          ...glass, borderRadius: 14, padding: "16px 20px", background: i % 2 ? ROW_BG[1] : ROW_BG[0] }}>
+        <div style=${{ font: `600 23px/1.2 ${HEAD}` }}>${c.name}</div>
+        <div>
+          <div style=${{ display: "flex", gap: 6 }}>${[0, 1, 2].map((k) => html`<i key=${k} style=${{ flex: 1, height: 10, borderRadius: 5, background: k < c.level ? C.green : "rgba(255,255,255,.14)", boxShadow: k < c.level ? `0 0 10px ${C.green}88` : "none" }} />`)}</div>
+          <div style=${{ marginTop: 8, font: `400 16px/1.3 ${BODY}`, color: muted }}>${c.status}</div>
+        </div>
+        <div style=${{ font: `400 19px/1.4 ${BODY}`, color: "rgba(255,255,255,.88)" }}>${c.need}</div>
+      <//>`)}
+    </div>
+    <${Fade} delay=${10} y=${6} style=${{ position: "absolute", left: 1220, top: 270 }}><${SEC} text="Support we need from the enablers" color=${C.green} /><//>
+    <div style=${{ position: "absolute", left: 1220, right: 120, top: 306, display: "flex", flexDirection: "column", gap: 12 }}>
+      ${asks.map((a, i) => html`<${Pop} key=${i} delay=${30 + i * 8} x=${30} y=${0} style=${{ ...glass, borderRadius: 14, padding: "16px 20px" }}>
+        <div style=${{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+          <div style=${{ font: `600 21px/1.2 ${HEAD}` }}>${a.name}</div>
+          <div style=${{ padding: "4px 10px", borderRadius: 999, border: `1px solid ${C.green}66`, color: C.green, font: `600 14px/1 ${HEAD}`, whiteSpace: "nowrap" }}>${a.when}</div>
+        </div>
+        <div style=${{ marginTop: 8, font: `400 17.5px/1.4 ${BODY}`, color: "rgba(255,255,255,.84)" }}>${a.ask}</div>
+      <//>`)}
+    </div>
+    ${s.note && html`<${Fade} delay=${90} style=${{ position: "absolute", left: 120, right: 120, bottom: 104, font: `400 15px/1.35 ${BODY}`, color: "rgba(255,255,255,.45)" }}>${s.note}<//>`}
+    <${Footer} index=${index} total=${total} title=${meta.title} />
+  <//>`;
+}
+
+registerSlideTypes({ "c-regions": CRegions, "c-forces": CForces, "c-enablers": CEnablers, "c-pillar": CPillar, "c-roadmap": CRoadmap, "c-territory": CTerritory, "c-list": CList, "c-facts": CFacts, "c-hero": CHero, "c-support": CSupport, "c-moves": CMoves, "c-blocks": CBlocks, "c-onepage": COnePage, "c-bridge": CBridge, "c-actions": CActions, "c-needs": CNeeds, "c-commit": CCommit });
